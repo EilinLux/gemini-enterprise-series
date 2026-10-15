@@ -108,3 +108,28 @@ output "embedded_widget_html_snippet" {
   EOT
 }
 
+# ----------------------------------------------------------------------------
+# 📌 Added since Article 4: Architecture, Monitoring & BigQuery Log Sink Outputs
+# ----------------------------------------------------------------------------
+
+output "observability_bq_dataset_id" {
+  description = "Added in Article 4: BigQuery dataset ID storing exported Gemini Enterprise, Dialogflow CX, and Agent Engine logs."
+  value       = google_bigquery_dataset.agent_observability_logs.dataset_id
+}
+
+output "observability_bq_eval_table_id" {
+  description = "Added in Article 4: Partitioned BigQuery table ID storing structured agent telemetry and Golden Evaluation results."
+  value       = "${google_bigquery_dataset.agent_observability_logs.dataset_id}.${google_bigquery_table.agent_telemetry_and_eval_logs.table_id}"
+}
+
+output "log_router_sink_name" {
+  description = "Added in Article 4: Cloud Logging Router Sink streaming agent telemetry into BigQuery (when enable_log_router_sink = true)."
+  value       = var.enable_log_router_sink ? google_logging_project_sink.agent_logs_to_bq[0].name : "Disabled (Set TF_VAR_enable_log_router_sink=true if your caller identity has roles/logging.configWriter)"
+}
+
+output "cloud_monitoring_dashboard_id" {
+  description = "Added in Article 4: Resource ID of the DoubleClick Enterprise Agent Observability Dashboard in Cloud Monitoring."
+  value       = google_monitoring_dashboard.double_click_agent_dashboard.id
+}
+
+

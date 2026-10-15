@@ -3,6 +3,7 @@
 #
 # 📌 Introduced in: Article 1 (Part 1 — 📚 Knowledge Base Management)
 # 📌 Updated in:    Article 2 (Part 2 — 🗣️ Conversational Modeling)
+# 📌 Updated in:    Article 4 (Part 4 — 📈 Architecture & Monitoring)
 # ============================================================================
 
 locals {
@@ -21,11 +22,20 @@ locals {
     "iam.googleapis.com",             # Service Account & IAM management for ADK Agents
   ]
 
+  # 📌 Added since Article 4: Cloud Observability Suite (Cloud Trace, Cloud Logging & Cloud Monitoring)
+  part_4_apis = [
+    "cloudtrace.googleapis.com",      # OpenTelemetry distributed tracing for ADK Agent Engine & ReasoningEngine
+    "logging.googleapis.com",         # Cloud Logging & Log Router Sink to BigQuery
+    "monitoring.googleapis.com",      # Cloud Monitoring metrics & custom Agent Observability Dashboards
+  ]
+
   required_apis = concat(
     local.part_1_apis,
     local.part_2_apis,
+    local.part_4_apis,
   )
 }
+
 
 # 📌 Added since Article 1: Enables all required GCP service APIs for the current branch
 resource "google_project_service" "enabled_apis" {
