@@ -132,4 +132,19 @@ output "cloud_monitoring_dashboard_id" {
   value       = google_monitoring_dashboard.double_click_agent_dashboard.id
 }
 
+# ----------------------------------------------------------------------------
+# 📌 Added since Article 5: Integration, Security, Secret Manager & Web Portal
+# ----------------------------------------------------------------------------
+
+output "oauth_action_secret_name" {
+  description = "Added in Article 5: Secret Manager resource name storing the Jira OAuth 2.0 Action client secret."
+  value       = google_secret_manager_secret.action_oauth_client_secret.name
+}
+
+output "intranet_portal_launch_command" {
+  description = "Added in Article 5: Command to launch the DoubleClick Enterprise Intranet Web App embedding <gen-search-widget> and the OAuth/ACL Simulator."
+  value       = "python3 webapp/serve_portal.py --port ${var.portal_port}"
+}
+
+
 

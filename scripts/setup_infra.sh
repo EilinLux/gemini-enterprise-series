@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Gemini Enterprise Series — Automated Infrastructure Setup Script
-# Branch: 04-architecture-and-monitoring (Part 1 + Part 2 + Part 3 + Part 4)
+# Branch: 05-integration-and-security (Complete 5-Part Enterprise Stack)
 #
 # Reads configuration from the single root `.env` file, exports `TF_VAR_*`
-# variables for Terraform, provisions Part 1 (Knowledge Base) + Part 2
-# (Agents) + Part 3 (UX/UI & Widget Config) + Part 4 (Observability: BigQuery
-# Log Sink, Cloud Monitoring Dashboard & Trace), seeds the data stores, and
-# runs the Part 4 Golden Evaluation Suite.
+# variables for Terraform, provisions:
+#   - Part 1: Knowledge Base (GCS Unstructured + BigQuery Structured + Connectors)
+#   - Part 2: Conversational Modeling (Dialogflow CX + Playbook + ADK + A2A)
+#   - Part 3: UX/UI & Accessibility (Branding Logo, Widget Config & Governance)
+#   - Part 4: Architecture & Monitoring (BigQuery Log Dataset, Eval Table & Dashboard)
+#   - Part 5: Integration & Security (Secret Manager OAuth Vault, IAM & Intranet Portal)
 # ============================================================================
 
 set -euo pipefail
@@ -27,16 +29,16 @@ source "${ENV_FILE}"
 set +a
 
 echo "============================================================================"
-echo "🚀 Setting up Gemini Enterprise Infrastructure (Parts 1–4: Observability)"
-echo "   Project ID:        ${PROJECT_ID}"
-echo "   Region:            ${REGION}"
-echo "   DE Location:       ${DISCOVERY_ENGINE_LOCATION}"
-echo "   App Name:          ${APP_NAME} (${COMPANY_NAME})"
-echo "   Log Sink Dataset:  ${BQ_LOGS_DATASET_ID}"
-echo "   Cloud Trace:       ${GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY}"
+echo "🚀 Setting up Complete Gemini Enterprise Stack (Parts 1–5: Security & Portal)"
+echo "   Project ID:         ${PROJECT_ID}"
+echo "   Region:             ${REGION}"
+echo "   DE Location:        ${DISCOVERY_ENGINE_LOCATION}"
+echo "   App Name:           ${APP_NAME} (${COMPANY_NAME})"
+echo "   OAuth Secret Vault: ${OAUTH_ACTION_SECRET_ID}"
+echo "   Portal Port:        ${PORTAL_PORT}"
 echo "============================================================================"
 
-# 2. Export Terraform variables mapped from .env (Part 1 + Part 2 + Part 3 + Part 4)
+# 2. Export Terraform variables mapped from .env (Parts 1–5)
 export TF_VAR_project_id="${PROJECT_ID}"
 export TF_VAR_region="${REGION}"
 export TF_VAR_discovery_engine_location="${DISCOVERY_ENGINE_LOCATION}"
@@ -56,13 +58,17 @@ export TF_VAR_shortcut_url="${SHORTCUT_URL}"
 export TF_VAR_allowlisted_domains="${ALLOWLISTED_DOMAINS}"
 export TF_VAR_bq_log_sink_dataset_id="${BQ_LOGS_DATASET_ID}"
 export TF_VAR_enable_cloud_trace="${GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY}"
+export TF_VAR_oauth_action_secret_id="${OAUTH_ACTION_SECRET_ID}"
+export TF_VAR_enable_workforce_identity="${ENABLE_WORKFORCE_IDENTITY}"
+export TF_VAR_workforce_pool_id="${WORKFORCE_POOL_ID}"
+export TF_VAR_portal_port="${PORTAL_PORT}"
 
 # 3. Run Terraform Init & Plan/Apply
 cd "${ROOT_DIR}/terraform"
 terraform init
 
 if [[ "${1:-}" == "--dry-run" ]]; then
-  echo "🔍 Running Terraform validation, ADK dry-run & Part 4 Golden Evaluation..."
+  echo "🔍 Running Terraform validation, ADK dry-run & Part 4/5 verification..."
   terraform validate
   python3 "${ROOT_DIR}/agents/adk_double_click_agent/deploy_agent_engine.py" --dry-run
   python3 "${ROOT_DIR}/agents/evaluate_agent.py"
@@ -71,7 +77,23 @@ fi
 
 terraform apply -auto-approve
 
-# 4. Populate BigQuery Structured Tables with DoubleClick Enterprise JSONL data
+# 4. Inject the live Widget Config ID into webapp/index.html if available
+LIVE_CONFIG_ID="$(terraform output -raw widget_obfuscated_config_id 2>/dev/null || true)"
+if [[ -n "${LIVE_CONFIG_ID}" ]]; then
+  echo "🎨 Syncing live Widget configId (${LIVE_CONFIG_ID}) into webapp/index.html..."
+  python3 -c '
+import re, sys
+path, cid = sys.argv[1], sys.argv[2]
+with open(path, "r", encoding="utf-8") as f:
+    html = f.read()
+html = re.sub(r"configId=\"[^\"]+\"", f"configId=\"{cid}\"", html)
+html = re.sub(r"id=\"widgetConfigIdInput\"\s+class=\"mono-input\"\s+value=\"[^\"]+\"", f"id=\"widgetConfigIdInput\"\n          class=\"mono-input\"\n          value=\"{cid}\"", html)
+with open(path, "w", encoding="utf-8") as f:
+    f.write(html)
+' "${ROOT_DIR}/webapp/index.html" "${LIVE_CONFIG_ID}"
+fi
+
+# 5. Populate BigQuery Structured Tables with DoubleClick Enterprise JSONL data
 echo "📊 Seeding BigQuery tables (${BQ_DATASET_ID}.project_db & retail_sales)..."
 bq --project_id="${PROJECT_ID}" load \
   --source_format=NEWLINE_DELIMITED_JSON \
@@ -85,7 +107,7 @@ bq --project_id="${PROJECT_ID}" load \
   "${BQ_DATASET_ID}.retail_sales" \
   "${ROOT_DIR}/data/structured/retail_sales.jsonl"
 
-# 5. Trigger Discovery Engine Document Import from GCS & BigQuery
+# 6. Trigger Discovery Engine Document Import from GCS & BigQuery
 echo "📚 Triggering Discovery Engine Data Store imports via REST API..."
 ACCESS_TOKEN="$(gcloud auth print-access-token)"
 API_HOST="discoveryengine.googleapis.com"
@@ -121,7 +143,7 @@ curl -s -X POST \
     \"reconciliationMode\": \"FULL\"
   }" > /dev/null
 
-# 6. Configure Gemini Enterprise App Default Assistant (System Instructions & Banned Phrases)
+# 7. Configure Gemini Enterprise App Default Assistant (System Instructions & Banned Phrases)
 echo "🤖 Configuring Default Assistant inside ${APP_NAME}-enterprise-app..."
 curl -s -X PATCH \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
@@ -147,7 +169,7 @@ curl -s -X PATCH \
     }
   }" > /dev/null
 
-# 7. Run Part 4 Continuous Quality & Trajectory Evaluation Suite & Export to BigQuery
+# 8. Run Part 4 Continuous Quality & Trajectory Evaluation Suite & Export to BigQuery
 echo "🧪 Running Part 4 Golden Dataset Evaluation Suite & exporting to BigQuery (${BQ_LOGS_DATASET_ID}.agent_telemetry_and_eval_logs)..."
 EVAL_TMP_JSONL="${ROOT_DIR}/terraform/.eval_results.jsonl"
 python3 "${ROOT_DIR}/agents/evaluate_agent.py" --output-jsonl "${EVAL_TMP_JSONL}"
@@ -158,5 +180,6 @@ bq --project_id="${PROJECT_ID}" load \
   "${EVAL_TMP_JSONL}"
 rm -f "${EVAL_TMP_JSONL}"
 
-echo "✅ Parts 1–4 infrastructure, BigQuery Observability Dataset (${BQ_LOGS_DATASET_ID}), and Cloud Monitoring Dashboard deployed!"
-echo "👉 Run 'terraform -chdir=terraform output cloud_monitoring_dashboard_id' to inspect your Monitoring Dashboard."
+echo "✅ Complete 5-Part Gemini Enterprise Stack Deployed!"
+echo "👉 Launch the DoubleClick Enterprise Intranet Web Portal on http://localhost:${PORTAL_PORT}:"
+echo "   python3 webapp/serve_portal.py --port ${PORTAL_PORT}"

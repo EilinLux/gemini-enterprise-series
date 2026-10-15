@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DoubleClick Enterprise — Internal AI Hub & Security Console (Gemini Enterprise)</title>
+  <meta name="description" content="DoubleClick Enterprise Intranet Portal embedding the Gemini Enterprise Search & Assistant Widget with Workforce Identity Document-Level ACLs and Per-User OAuth 2.0 Actions." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- 📌 Part 3 & Part 5: Official Google Cloud Gemini Enterprise Web Widget Bundle -->
+  <script src="https://cloud.google.com/ai/gen-app-builder/client?hl=en_US"></script>
+</head>
+<body>
+  <!-- Top Intranet Navigation Bar -->
+  <header class="topbar">
+    <div class="brand">
+      <img
+        src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Double-click-161563.svg"
+        alt="DoubleClick Enterprise Logo"
+        class="brand-logo"
+        id="brandLogoImg"
+      />
+      <div>
+        <div class="brand-title">DoubleClick Enterprise Intranet</div>
+        <div class="brand-subtitle">Powered by Gemini Enterprise • Zero-Leakage RAG & Per-User OAuth 2.0 Actions</div>
+      </div>
+    </div>
+
+    <div class="identity-Controls">
+      <span class="badge-pill" id="wifStatusBadge">🔐 WIF SSO Active</span>
+      <label for="userIdentitySelect" style="font-size: 0.8rem; color: #94a3b8;">Logged-in Employee:</label>
+      <select id="userIdentitySelect" class="role-selector">
+        <option value="vp">👩‍💼 zelda-vp@doubleclick.example.com (VP • Clearance L2 • exec-leadership)</option>
+        <option value="intern">👤 zelda-intern@doubleclick.example.com (Intern • Clearance L1 • general-staff)</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 1. Hero Section: Live Embedded Gemini Enterprise Search & Assistant Widget -->
+    <section class="hero-card" aria-labelledby="portalHeroTitle">
+      <div class="hero-header">
+        <div>
+          <h1 id="portalHeroTitle">Double-Click Into Company Knowledge & Actions</h1>
+          <p>
+            Click the search bar below to open our live <strong>Gemini Enterprise</strong> embedded widget
+            (<code>&lt;gen-search-widget&gt;</code>) grounded in DoubleClick’s GCS Unstructured Archive and BigQuery
+            Operational Warehouse, or test Document-Level ACLs and Per-User OAuth 2.0 Jira Actions below.
+          </p>
+        </div>
+        <a
+          href="https://news.google.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-outline"
+          id="pinnedShortcutBtn"
+        >
+          📌 Pinned Shortcut: Google News ↗
+        </a>
+      </div>
+
+      <!-- 📌 Embedded Gemini Enterprise Web Component (Part 3 & Part 5) -->
+      <gen-search-widget
+        id="geminiEnterpriseWidget"
+        configId="9b9cd0cf-78eb-4495-b8ee-f1d6effec88b"
+        triggerId="searchWidgetTrigger">
+      </gen-search-widget>
+
+      <div class="widget-search-bar">
+        <input
+          type="text"
+          id="searchWidgetTrigger"
+          class="widget-trigger-input"
+          placeholder="🔍 Ask anything, search DoubleClick data, @mention an agent, or type /tools (Click to launch Gemini Enterprise Widget)..."
+          readonly
+        />
+      </div>
+
+      <div class="widget-config-row">
+        <span>Active Widget <code>configId</code>:</span>
+        <input
+          type="text"
+          id="widgetConfigIdInput"
+          class="mono-input"
+          value="9b9cd0cf-78eb-4495-b8ee-f1d6effec88b"
+          aria-label="Gemini Enterprise Widget Config ID"
+        />
+        <button type="button" class="btn btn-outline" id="applyConfigIdBtn">Update Widget Config ID</button>
+      </div>
+    </section>
+
+    <!-- 2. Two-Column Security & Action Simulator (Part 5) -->
+    <div class="grid-2col">
+      <!-- Column A: Read Security — Workforce Identity & Document-Level ACL Pre-Filtering -->
+      <section class="panel-card" aria-labelledby="aclPanelTitle">
+        <div class="panel-header">
+          <h2 id="aclPanelTitle">1. Read Security: Document-Level ACL Pre-Filtering</h2>
+          <span class="badge-pill" id="activeClearanceBadge">Clearance Level 2</span>
+        </div>
+        <p class="panel-desc">
+          Gemini Enterprise enforces Identity Provider (IdP) group claims <strong>before</strong> passing retrieved
+          chunks to the LLM—preventing unauthorized context from ever entering the prompt window. Switch the employee
+          persona in the top bar to see pre-filtering in action:
+        </p>
+
+        <div class="acl-list" id="aclDocumentList">
+          <!-- Populated dynamically by app.js -->
+        </div>
+      </section>
+
+      <!-- Column B: Write Security — Per-User OAuth 2.0 & Human-in-the-Loop (HITL) Jira Action -->
+      <section class="panel-card" aria-labelledby="oauthPanelTitle">
+        <div class="panel-header">
+          <h2 id="oauthPanelTitle">2. Write Security: Per-User OAuth 2.0 Jira Action</h2>
+          <span class="badge-pill" id="oauthTokenBadge" style="background: rgba(245, 158, 11, 0.16); color: #fbbf24; border-color: rgba(245, 158, 11, 0.35);">
+            ⚠️ Jira OAuth Not Linked
+          </span>
+        </div>
+        <p class="panel-desc">
+          Never use a static admin API key for user-facing write actions. Test how Gemini Enterprise requests
+          <strong>Per-User OAuth 2.0 consent</strong> (backed by our Secret Manager vault
+          <code>double-click-jira-action-oauth-secret</code>) and enforces a <strong>Human-in-the-Loop (HITL)</strong>
+          confirmation card before creating a Jira ticket:
+        </p>
+
+        <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-primary" id="proposeJiraActionBtn">
+            🛠️ Run Action: Create P1 Jira Ticket for Project Alpha Delay
+          </button>
+          <button type="button" class="btn btn-outline" id="resetOAuthFlowBtn">
+            Reset OAuth State
+          </button>
+        </div>
+
+        <!-- Interactive OAuth Consent & HITL Confirmation Container -->
+        <div id="oauthActionStage" class="action-box">
+          <!-- Populated dynamically by app.js -->
+        </div>
+
+        <!-- Real-Time Security & Action Audit Trail -->
+        <div class="audit-log" id="securityAuditLog" aria-live="polite"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
