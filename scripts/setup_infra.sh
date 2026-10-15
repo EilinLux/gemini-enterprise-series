@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Gemini Enterprise Series — Automated Infrastructure Setup Script
-# Branch: 01-knowledge-base-management (Part 1)
+# Branch: 02-conversational-modeling (Part 1 + Part 2)
 #
 # Reads configuration from the single root `.env` file, exports `TF_VAR_*`
-# variables for Terraform, provisions the Cloud infrastructure, and seeds the
-# DoubleClick Enterprise messy data sources (GCS + BigQuery + Discovery Engine).
+# variables for Terraform, provisions Part 1 (Knowledge Base) + Part 2
+# (Dialogflow CX Agent, Playbook, Q&A Chat Engine, Gemini Enterprise App,
+# and ADK Agent Engine IAM), and seeds the data stores.
 # ============================================================================
 
 set -euo pipefail
@@ -25,14 +26,14 @@ source "${ENV_FILE}"
 set +a
 
 echo "============================================================================"
-echo "🚀 Setting up Gemini Enterprise Infrastructure (Part 1: Knowledge Base)"
+echo "🚀 Setting up Gemini Enterprise Infrastructure (Part 1 + Part 2: Agents)"
 echo "   Project ID:   ${PROJECT_ID}"
 echo "   Region:       ${REGION}"
 echo "   DE Location:  ${DISCOVERY_ENGINE_LOCATION}"
 echo "   App Name:     ${APP_NAME} (${COMPANY_NAME})"
 echo "============================================================================"
 
-# 2. Export Terraform variables mapped from .env
+# 2. Export Terraform variables mapped from .env (Part 1 + Part 2)
 export TF_VAR_project_id="${PROJECT_ID}"
 export TF_VAR_region="${REGION}"
 export TF_VAR_discovery_engine_location="${DISCOVERY_ENGINE_LOCATION}"
@@ -42,14 +43,19 @@ export TF_VAR_bq_dataset_id="${BQ_DATASET_ID}"
 export TF_VAR_gcs_bucket_suffix="${GCS_BUCKET_SUFFIX}"
 export TF_VAR_enable_federated_connector="${ENABLE_FEDERATED_CONNECTOR}"
 export TF_VAR_federated_connector_source="${FEDERATED_CONNECTOR_SOURCE}"
+export TF_VAR_dialogflow_time_zone="${DIALOGFLOW_TIME_ZONE}"
+export TF_VAR_dialogflow_default_language="${DIALOGFLOW_DEFAULT_LANGUAGE}"
+export TF_VAR_adk_agent_display_name="${ADK_AGENT_DISPLAY_NAME}"
+export TF_VAR_gemini_model="${GEMINI_MODEL}"
 
 # 3. Run Terraform Init & Plan/Apply
 cd "${ROOT_DIR}/terraform"
 terraform init
 
 if [[ "${1:-}" == "--dry-run" ]]; then
-  echo "🔍 Running Terraform validation & plan (dry-run mode)..."
+  echo "🔍 Running Terraform validation & ADK dry-run check..."
   terraform validate
+  python3 "${ROOT_DIR}/agents/adk_double_click_agent/deploy_agent_engine.py" --dry-run
   exit 0
 fi
 
@@ -69,7 +75,7 @@ bq --project_id="${PROJECT_ID}" load \
   "${BQ_DATASET_ID}.retail_sales" \
   "${ROOT_DIR}/data/structured/retail_sales.jsonl"
 
-# 5. Trigger initial Discovery Engine Document Import from GCS & BigQuery
+# 5. Trigger Discovery Engine Document Import from GCS & BigQuery
 echo "📚 Triggering Discovery Engine Data Store imports via REST API..."
 ACCESS_TOKEN="$(gcloud auth print-access-token)"
 API_HOST="discoveryengine.googleapis.com"
@@ -77,7 +83,6 @@ if [[ "${DISCOVERY_ENGINE_LOCATION}" != "global" ]]; then
   API_HOST="${DISCOVERY_ENGINE_LOCATION}-discoveryengine.googleapis.com"
 fi
 
-# Import unstructured documents from GCS into the Unstructured Data Store
 curl -s -X POST \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
@@ -91,7 +96,6 @@ curl -s -X POST \
     \"reconciliationMode\": \"INCREMENTAL\"
   }" > /dev/null
 
-# Import structured rows from BigQuery into the Structured Data Store
 curl -s -X POST \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
@@ -107,4 +111,33 @@ curl -s -X POST \
     \"reconciliationMode\": \"FULL\"
   }" > /dev/null
 
-echo "✅ Part 1 Knowledge Base setup and ingestion triggered successfully!"
+# 6. Configure Gemini Enterprise App Default Assistant (System Instructions & Banned Phrases)
+echo "🤖 Configuring Default Assistant inside ${APP_NAME}-enterprise-app..."
+curl -s -X PATCH \
+  -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -H "X-Goog-User-Project: ${PROJECT_ID}" \
+  "https://${API_HOST}/v1alpha/projects/${PROJECT_ID}/locations/${DISCOVERY_ENGINE_LOCATION}/collections/default_collection/engines/${APP_NAME}-enterprise-app/assistants/default_assistant?updateMask=generationConfig,customerPolicy,webGroundingType" \
+  -d "{
+    \"webGroundingType\": \"WEB_GROUNDING_TYPE_GOOGLE_SEARCH\",
+    \"generationConfig\": {
+      \"defaultLanguage\": \"${DIALOGFLOW_DEFAULT_LANGUAGE}\",
+      \"systemInstruction\": {
+        \"additionalSystemInstruction\": \"You are the official ${COMPANY_NAME} AI Assistant. Always ground your answers in the connected ${COMPANY_NAME} Data Stores (WFH Policy V2, Acme Corp MSA 2026, IT Security Playbook, and BigQuery project_db / retail_sales tables) and cite the exact source.\"
+      }
+    },
+    \"customerPolicy\": {
+      \"bannedPhrases\": [
+        {
+          \"phrase\": \"Project Chimera\",
+          \"matchType\": \"SIMPLE_STRING_MATCH\",
+          \"ignoreDiacritics\": true
+        }
+      ]
+    }
+  }" > /dev/null
+
+echo "✅ Part 1 & Part 2 infrastructure, Gemini Enterprise App (with connected Data Stores), and Conversational Agents deployed!"
+echo "👉 Run 'terraform -chdir=terraform output dialogflow_cx_agent_resource_name' to copy your Dialogflow Agent path."
+echo "👉 Run 'python3 agents/adk_double_click_agent/deploy_agent_engine.py' to deploy the ADK Agent to Vertex AI Agent Engine."
+

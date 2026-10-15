@@ -1,0 +1,30 @@
+{
+  "name": "double_click_remote_a2a_agent",
+  "description": "Remote multi-agent collaborator speaking the Agent-to-Agent (A2A) protocol. Handles supplier risk checks (e.g., CloudNet Hardware Ltd.) and SLA penalty calculations.",
+  "version": "1.0.0",
+  "protocolVersion": "0.2.1",
+  "url": "https://a2a-supply-chain-agent.doubleclick.example.com/a2a",
+  "provider": {
+    "organization": "DoubleClick Enterprise",
+    "url": "https://doubleclick.example.com"
+  },
+  "capabilities": {
+    "streaming": true,
+    "pushNotifications": false,
+    "stateTransitionHistory": true
+  },
+  "defaultInputModes": ["text/plain", "application/json"],
+  "defaultOutputModes": ["text/plain", "application/json"],
+  "skills": [
+    {
+      "id": "check_supplier_bottleneck",
+      "name": "Check Supplier SLA & Bottleneck Status",
+      "description": "Queries remote supply-chain systems for hardware vendor delays impacting Project Alpha or Acme Corp MSAs.",
+      "tags": ["supply-chain", "sla", "contracts", "double-click"],
+      "examples": [
+        "Why was Project Alpha delayed by 14 days?",
+        "Check supplier status for CloudNet Hardware Ltd."
+      ]
+    }
+  ]
+}

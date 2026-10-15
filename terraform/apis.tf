@@ -2,7 +2,7 @@
 # Google Cloud APIs Configuration (`apis.tf`)
 #
 # 📌 Introduced in: Article 1 (Part 1 — 📚 Knowledge Base Management)
-#    Enables core APIs required for Data Stores, Cloud Storage, and BigQuery.
+# 📌 Updated in:    Article 2 (Part 2 — 🗣️ Conversational Modeling)
 # ============================================================================
 
 locals {
@@ -13,8 +13,17 @@ locals {
     "storage.googleapis.com",         # Google Cloud Storage Unstructured Document Archive
   ]
 
+  # 📌 Added since Article 2: Dialogflow CX, CX Agent Studio (CES), Vertex AI Agent Engine, and IAM APIs
+  part_2_apis = [
+    "dialogflow.googleapis.com",      # Dialogflow CX Agents & Playbooks
+    "ces.googleapis.com",             # Customer Engagement Suite — Next-Gen CX Agent Studio Apps & Agents
+    "aiplatform.googleapis.com",      # Vertex AI Models & Vertex AI Agent Engine (ADK Runtime)
+    "iam.googleapis.com",             # Service Account & IAM management for ADK Agents
+  ]
+
   required_apis = concat(
     local.part_1_apis,
+    local.part_2_apis,
   )
 }
 
