@@ -100,3 +100,32 @@ variable "enable_ces_studio_app" {
 }
 
 
+# ----------------------------------------------------------------------------
+# 📌 Added since Article 3: UX/UI, Branding, Widget & Shortcuts
+# ----------------------------------------------------------------------------
+
+variable "company_logo_url" {
+  description = "Since Article 3: Public HTTPS URL for the DoubleClick Enterprise logo displayed in the Gemini Enterprise Web App and Search Widget."
+  type        = string
+  default     = "https://upload.wikimedia.org/wikipedia/commons/6/6b/Double-click-161563.svg"
+}
+
+variable "shortcut_title" {
+  description = "Since Article 3: Title of the pinned navigation shortcut in the Gemini Enterprise Web App."
+  type        = string
+  default     = "Google News"
+}
+
+variable "shortcut_url" {
+  description = "Since Article 3: Destination URL of the pinned navigation shortcut in the Gemini Enterprise Web App."
+  type        = string
+  default     = "https://news.google.com/"
+}
+
+variable "allowlisted_domains" {
+  description = "Since Article 3: Comma-separated list of domains allowed to embed the Gemini Enterprise `<gen-search-widget>`."
+  type        = string
+  default     = "localhost,internal.doubleclick.example.com"
+}
+
+
