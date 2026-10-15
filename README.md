@@ -29,12 +29,12 @@ Before adopting Gemini Enterprise, DoubleClick employees wasted hours every day 
 
 ## 📚 Series Table of Contents & Git Branch Map
 
-| Branch | Main Medium Article (Concepts & Console UI) | Companion EXTRA Article (Code & Terraform Deep-Dive) | What Gets Added in This Branch |
+| Branch | Medium Article Topic | Companion EXTRA Deep-Dive | What Gets Added in This Branch |
 | :--- | :--- | :--- | :--- |
-| **`01-knowledge-base-management`** | **[Part 1 — 📚 Knowledge Base Management](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-1-knowledge-base-management.md)** | **[Part 1 EXTRA — Code & Terraform Setup](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-1-extra-code-and-terraform-setup.md)** | • **DoubleClick Enterprise** messy data (`data/unstructured/` & `data/structured/`)<br>• Modular Terraform (`apis.tf`, `storage.tf`, `bigquery.tf`, `discovery_engine.tf`) connecting Data Stores to the Gemini Enterprise App |
-| **`02-conversational-modeling`** | **[Part 2 — 🗣️ Conversational Modeling](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-2-conversational-modeling.md)** | **[Part 2 EXTRA — Agent Code & Terraform Setup](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-2-extra-code-and-terraform-setup.md)** | • **Dialogflow CX** (`dialogflow_cx.tf`) + Generative Playbook<br>• **ADK Python Agent** (`agents/adk_double_click_agent/`) + **A2A JSON Agent Card** + `vertex_ai_agent.tf` |
-| **`03-ux-ui-and-accessibility`** *(Current)* | **[Part 3 — 🎨 UX/UI & Accessibility](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-3-ux-ui-and-accessibility.md)** | **[Part 3 EXTRA — UI & Widget Terraform Setup](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-3-extra-code-and-terraform-setup.md)** | • **Widget & Branding Config (`terraform/widget_ui.tf`):** Custom DoubleClick SVG logo, `SEARCH_WITH_FOLLOW_UPS`, Autocomplete, Feedback, Allowlisted Domains<br>• **Feature Management Governance (`terraform/discovery_engine.tf`):** `features` map controlling Agent Gallery, No-Code Builder, NotebookLM, Memory & Admin Approval |
-| **`04-architecture-and-monitoring`** | **Part 4 — 📈 Architecture & Monitoring** *(Checkout `04-architecture-and-monitoring`)* | **Part 4 EXTRA — Observability & Eval Setup** *(Checkout `04-architecture-and-monitoring`)* | • **OpenTelemetry Tracing** (`observability.tf`), **BigQuery Log Sink**, **Cloud Monitoring Dashboard**, and GenAI Eval runner |
+| **`01-knowledge-base-management`** | **Part 1 — 📚 Knowledge Base Management** | **Part 1 EXTRA — Code & Terraform Setup** | • **DoubleClick Enterprise** messy data (`data/unstructured/` & `data/structured/`)<br>• Modular Terraform (`apis.tf`, `storage.tf`, `bigquery.tf`, `discovery_engine.tf`) connecting Data Stores to the Gemini Enterprise App |
+| **`02-conversational-modeling`** | **Part 2 — 🗣️ Conversational Modeling** | **Part 2 EXTRA — Agent Code & Terraform Setup** | • **Dialogflow CX / CX Agent Studio** (`dialogflow_cx.tf`) + Generative Playbook (`startPlaybook`)<br>• **ADK Python Agent** (`agents/adk_double_click_agent/`) + **A2A JSON Agent Card** + `vertex_ai_agent.tf` |
+| **`03-ux-ui-and-accessibility`** | **Part 3 — 🎨 UX/UI & Accessibility** | **Part 3 EXTRA — UI & Widget Terraform Setup** | • **Widget & Branding Config (`terraform/widget_ui.tf`):** Custom DoubleClick SVG logo, `SEARCH_WITH_FOLLOW_UPS`, Autocomplete, Feedback, Allowlisted Domains<br>• **Feature Management Governance (`terraform/discovery_engine.tf`):** `features` map controlling Agent Gallery, No-Code Builder, NotebookLM, Memory & Admin Approval |
+| **`04-architecture-and-monitoring`** *(Current)* | **Part 4 — 📈 Architecture & Monitoring** | **Part 4 EXTRA — Observability & Eval Setup** | • **Observability & Audit Pipeline (`terraform/observability.tf`):** Partitioned BigQuery Dataset (`double_click_agent_logs`), **Cloud Logging Router Sink** (`double-click-agent-logs-bq-sink`), least-privilege dataset IAM, and **Cloud Monitoring Custom Dashboard**<br>• **Continuous Quality & Trajectory Evaluator (`agents/evaluate_agent.py`):** Golden dataset evaluator for tool trajectory, groundedness & safety guardrails |
 | **`05-integration-and-security`** | **Part 5 — 🛡️ Integration & Security** *(Checkout `05-integration-and-security`)* | **Part 5 EXTRA — Security, OAuth & Mock Web Portal** *(Checkout `05-integration-and-security`)* | • **Per-User OAuth 2.0 Actions**, **Secret Manager** (`security.tf`), **ACL Config**, & **Interactive Mocked Enterprise Intranet Web App (`webapp/`)** |
 
 ---
@@ -51,49 +51,55 @@ Before adopting Gemini Enterprise, DoubleClick employees wasted hours every day 
    ```bash
    cp .env.example .env
    ```
-   Edit `.env` to set `PROJECT_ID="your-gcp-project-id"` and review the Part 3 UX/UI variables (`COMPANY_LOGO_URL`, `SHORTCUT_TITLE`, `SHORTCUT_URL`, `ALLOWLISTED_DOMAINS`).
+   Edit `.env` to set `PROJECT_ID="your-gcp-project-id"` and review the Part 4 observability variables (`BQ_LOGS_DATASET_ID="double_click_agent_logs"`, `GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY="true"`, and `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT="EVENT_ONLY"`).
 
 ---
 
-## 🛠️ How to Provision & Test (Branch `03-ux-ui-and-accessibility`)
+## 🛠️ How to Provision & Test (Branch `04-architecture-and-monitoring`)
 
-### 1. Run the Automated Verification Suite
+### 1. Run the Automated Verification & Golden Evaluation Suite
 ```bash
 ./scripts/test_infra.sh
 ```
-This validates all `.env.example` keys, sample data, Part 2 ADK Python tools & A2A JSON card, and validates all modular Terraform files (including `terraform/widget_ui.tf`).
+This validates all `.env.example` keys, sample data, Part 2 ADK Python tools & A2A JSON card, Part 3 Widget Config, Part 4 `terraform/observability.tf`, and runs `python3 agents/evaluate_agent.py` against the DoubleClick Enterprise Golden Dataset.
 
-### 2. Provision Part 1 + Part 2 + Part 3 Infrastructure
+### 2. Provision Parts 1–4 Infrastructure
 ```bash
 ./scripts/setup_infra.sh
 ```
-After `setup_infra.sh` completes, print your ready-to-embed `<gen-search-widget>` HTML snippet:
+After `setup_infra.sh` completes, you can also run the standalone Golden Dataset Evaluator at any time:
 ```bash
-terraform -chdir=terraform output embedded_widget_html_snippet
+# Fast deterministic CI/CD trajectory & groundedness evaluation
+python3 agents/evaluate_agent.py
+
+# Live LLM-as-a-Judge evaluation via Vertex AI GenAI Evaluation Service (EvalTask)
+python3 agents/evaluate_agent.py --live-vertex-eval
 ```
 
 ---
 
 ## 🖥️ How to Verify the Provisioned Resources in the Google Cloud Console UI
 
-After running `./scripts/setup_infra.sh`, you can verify every Part 1, Part 2, and Part 3 resource in the Google Cloud Console UI:
+After running `./scripts/setup_infra.sh`, you can verify every Part 1–4 resource in the Google Cloud Console UI:
 
 1. **Part 1 — Verify Data Stores & Connected App:**
    * Open [Cloud Storage Buckets](https://console.cloud.google.com/storage/browser) (`<YOUR_PROJECT_ID>-double-click-docs-staging`) and [BigQuery Studio](https://console.cloud.google.com/bigquery) (`double_click_kb.project_db` & `retail_sales`).
-   * In **Gemini Enterprise > Apps**, click **`DoubleClick Enterprise - Gemini Enterprise App`** (`double-click-enterprise-app`) and open **Connected data stores** to confirm both `double-click-unstructured-ds` and `double-click-structured-bq-ds` are attached.
+   * In **Gemini Enterprise > Apps**, click **`DoubleClick Enterprise - Gemini Enterprise App`** (`double-click-enterprise-app`) and open **Data Stores** to confirm both `double-click-unstructured-ds` and `double-click-structured-bq-ds` are attached.
 2. **Part 2 — Verify Conversational Agents:**
-   * Open the [Dialogflow CX Console](https://dialogflow.cloud.google.com/cx/projects) (location **`global`**) and verify **`double-click_cx_custom_qa_agent`** and its **`DoubleClick Enterprise Knowledge & Policy Concierge`** Playbook.
+   * Open [CX Agent Studio / Dialogflow CX Console](https://dialogflow.cloud.google.com/cx/projects) (location **`global`**) and verify **`double-click_cx_custom_qa_agent`** and its **`DoubleClick Enterprise Knowledge & Policy Concierge`** Playbook.
 3. **Part 3 — Verify Branding, Search UI, Feature Management & Widget Integration:**
-   * In **Gemini Enterprise > Apps > `DoubleClick Enterprise - Gemini Enterprise App`**, click **Configurations** in the left-hand navigation menu:
-     * **Search UI tab:** Verify that **Show autocomplete suggestions** and **Enable feedback** are toggled **On**, and that the **Logo image** field displays our DoubleClick Enterprise SVG URL (`https://upload.wikimedia.org/wikipedia/commons/6/6b/Double-click-161563.svg`). You can also add the **Google News** Pinned Shortcut (`https://news.google.com/`) in the preview panel and click **Save and Publish**.
-     * **Feature Management tab:** Verify that **Agent gallery**, **Prompt gallery**, **NotebookLM**, and **Memory & customization** are toggled **On**, while unapproved organization-wide agent sharing is restricted.
-   * Click **Integration** in the left-hand menu:
-     * Verify that `localhost` and `internal.doubleclick.example.com` are listed under **Authorized domains** and inspect the `<gen-search-widget>` snippet.
+   * In **Gemini Enterprise > Apps > `DoubleClick Enterprise - Gemini Enterprise App` > Configurations**, verify the **Search UI** branding logo, autocomplete, feedback, and **Feature Management** toggles, plus **Integration** authorized domains (`localhost`, `internal.doubleclick.example.com`).
+4. **Part 4 — Verify Analytics, BigQuery Log Sink, Cloud Trace & Monitoring Dashboard:**
+   * **Gemini Enterprise Built-In Analytics:** Inside **Gemini Enterprise > Apps > `DoubleClick Enterprise - Gemini Enterprise App`**, click **Analytics** at the bottom of the left navigation menu to inspect the Looker-powered **Adoption**, **Usage & Quality** (👍/👎 feedback & citation CTR), and **Agent Metrics** tabs.
+   * **Cloud Logging Router Sink:** Open [Cloud Logging > Log Router](https://console.cloud.google.com/logs/router) and verify that **`double-click-agent-logs-bq-sink`** is listed and routing `ReasoningEngine`, `dialogflow`, and `discoveryengine.googleapis.com` logs into BigQuery.
+   * **BigQuery Observability Dataset:** Open [BigQuery Studio](https://console.cloud.google.com/bigquery) and confirm the **`double_click_agent_logs`** dataset is provisioned alongside `double_click_kb`, with `roles/bigquery.dataEditor` granted to the sink's unique writer identity.
+   * **Cloud Monitoring Custom Dashboard:** Open [Cloud Monitoring > Dashboards](https://console.cloud.google.com/monitoring/dashboards) and click **`DoubleClick Enterprise — Gemini Enterprise & Agent Observability (Part 4)`** to view real-time log sink export throughput and BigQuery query volume charts.
+   * **Cloud Trace Waterfall:** Open [Cloud Trace > Trace Explorer](https://console.cloud.google.com/traces/list) to inspect OpenTelemetry execution spans (`AdkApp.query`, `call_llm`, `execute_tool`) emitted when `enable_tracing=True`.
 
 ---
 
 ## ⏭️ Next Step
-Switch to Branch 04 to add **Architecture, OpenTelemetry Tracing, BigQuery Log Sinks, and Cloud Monitoring Dashboards**:
+Switch to Branch 05 (Finale) to add **Security, Per-User OAuth 2.0 Actions, Secret Manager, Document ACLs, and the Interactive Mocked DoubleClick Intranet Web Portal**:
 ```bash
-git checkout 04-architecture-and-monitoring
+git checkout 05-integration-and-security
 ```

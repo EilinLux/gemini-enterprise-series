@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Gemini Enterprise Series — Automated Infrastructure Setup Script
-# Branch: 03-ux-ui-and-accessibility (Part 1 + Part 2 + Part 3)
+# Branch: 04-architecture-and-monitoring (Part 1 + Part 2 + Part 3 + Part 4)
 #
 # Reads configuration from the single root `.env` file, exports `TF_VAR_*`
 # variables for Terraform, provisions Part 1 (Knowledge Base) + Part 2
-# (Agents) + Part 3 (UX/UI, Branding Logo, Widget Config & Feature Management),
-# and seeds the data stores.
+# (Agents) + Part 3 (UX/UI & Widget Config) + Part 4 (Observability: BigQuery
+# Log Sink, Cloud Monitoring Dashboard & Trace), seeds the data stores, and
+# runs the Part 4 Golden Evaluation Suite.
 # ============================================================================
 
 set -euo pipefail
@@ -26,15 +27,16 @@ source "${ENV_FILE}"
 set +a
 
 echo "============================================================================"
-echo "🚀 Setting up Gemini Enterprise Infrastructure (Part 1 + Part 2 + Part 3: UX/UI)"
-echo "   Project ID:   ${PROJECT_ID}"
-echo "   Region:       ${REGION}"
-echo "   DE Location:  ${DISCOVERY_ENGINE_LOCATION}"
-echo "   App Name:     ${APP_NAME} (${COMPANY_NAME})"
-echo "   Brand Logo:   ${COMPANY_LOGO_URL}"
+echo "🚀 Setting up Gemini Enterprise Infrastructure (Parts 1–4: Observability)"
+echo "   Project ID:        ${PROJECT_ID}"
+echo "   Region:            ${REGION}"
+echo "   DE Location:       ${DISCOVERY_ENGINE_LOCATION}"
+echo "   App Name:          ${APP_NAME} (${COMPANY_NAME})"
+echo "   Log Sink Dataset:  ${BQ_LOGS_DATASET_ID}"
+echo "   Cloud Trace:       ${GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY}"
 echo "============================================================================"
 
-# 2. Export Terraform variables mapped from .env (Part 1 + Part 2 + Part 3)
+# 2. Export Terraform variables mapped from .env (Part 1 + Part 2 + Part 3 + Part 4)
 export TF_VAR_project_id="${PROJECT_ID}"
 export TF_VAR_region="${REGION}"
 export TF_VAR_discovery_engine_location="${DISCOVERY_ENGINE_LOCATION}"
@@ -52,16 +54,18 @@ export TF_VAR_company_logo_url="${COMPANY_LOGO_URL}"
 export TF_VAR_shortcut_title="${SHORTCUT_TITLE}"
 export TF_VAR_shortcut_url="${SHORTCUT_URL}"
 export TF_VAR_allowlisted_domains="${ALLOWLISTED_DOMAINS}"
-
+export TF_VAR_bq_log_sink_dataset_id="${BQ_LOGS_DATASET_ID}"
+export TF_VAR_enable_cloud_trace="${GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY}"
 
 # 3. Run Terraform Init & Plan/Apply
 cd "${ROOT_DIR}/terraform"
 terraform init
 
 if [[ "${1:-}" == "--dry-run" ]]; then
-  echo "🔍 Running Terraform validation & ADK dry-run check..."
+  echo "🔍 Running Terraform validation, ADK dry-run & Part 4 Golden Evaluation..."
   terraform validate
   python3 "${ROOT_DIR}/agents/adk_double_click_agent/deploy_agent_engine.py" --dry-run
+  python3 "${ROOT_DIR}/agents/evaluate_agent.py"
   exit 0
 fi
 
@@ -143,7 +147,16 @@ curl -s -X PATCH \
     }
   }" > /dev/null
 
-echo "✅ Part 1 & Part 2 infrastructure, Gemini Enterprise App (with connected Data Stores), and Conversational Agents deployed!"
-echo "👉 Run 'terraform -chdir=terraform output dialogflow_cx_agent_resource_name' to copy your Dialogflow Agent path."
-echo "👉 Run 'python3 agents/adk_double_click_agent/deploy_agent_engine.py' to deploy the ADK Agent to Vertex AI Agent Engine."
+# 7. Run Part 4 Continuous Quality & Trajectory Evaluation Suite & Export to BigQuery
+echo "🧪 Running Part 4 Golden Dataset Evaluation Suite & exporting to BigQuery (${BQ_LOGS_DATASET_ID}.agent_telemetry_and_eval_logs)..."
+EVAL_TMP_JSONL="${ROOT_DIR}/terraform/.eval_results.jsonl"
+python3 "${ROOT_DIR}/agents/evaluate_agent.py" --output-jsonl "${EVAL_TMP_JSONL}"
+bq --project_id="${PROJECT_ID}" load \
+  --source_format=NEWLINE_DELIMITED_JSON \
+  --replace \
+  "${BQ_LOGS_DATASET_ID}.agent_telemetry_and_eval_logs" \
+  "${EVAL_TMP_JSONL}"
+rm -f "${EVAL_TMP_JSONL}"
 
+echo "✅ Parts 1–4 infrastructure, BigQuery Observability Dataset (${BQ_LOGS_DATASET_ID}), and Cloud Monitoring Dashboard deployed!"
+echo "👉 Run 'terraform -chdir=terraform output cloud_monitoring_dashboard_id' to inspect your Monitoring Dashboard."

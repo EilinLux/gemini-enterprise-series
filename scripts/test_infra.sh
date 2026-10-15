@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Gemini Enterprise Series — Automated Verification & Testing Suite
-# Branch: 03-ux-ui-and-accessibility (Part 1 + Part 2 + Part 3)
+# Branch: 04-architecture-and-monitoring (Part 1 + Part 2 + Part 3 + Part 4)
 # ============================================================================
 
 set -euo pipefail
@@ -9,11 +9,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "============================================================================"
-echo "🧪 Running Repository Verification Suite — Branch 03 (UX/UI & Accessibility)"
+echo "🧪 Running Repository Verification Suite — Branch 04 (Architecture & Monitoring)"
 echo "============================================================================"
 
-# 1. Verify .env.example has all required Part 1 + Part 2 + Part 3 keys
-echo "1️⃣  Checking .env.example configuration keys (Part 1 + Part 2 + Part 3)..."
+# 1. Verify .env.example has all required Part 1–4 keys
+echo "1️⃣  Checking .env.example configuration keys (Parts 1–4)..."
 REQUIRED_KEYS=(
   "PROJECT_ID"
   "REGION"
@@ -30,6 +30,9 @@ REQUIRED_KEYS=(
   "SHORTCUT_TITLE"
   "SHORTCUT_URL"
   "ALLOWLISTED_DOMAINS"
+  "BQ_LOGS_DATASET_ID"
+  "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY"
+  "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"
 )
 
 for key in "${REQUIRED_KEYS[@]}"; do
@@ -79,26 +82,33 @@ assert len(card["skills"]) >= 1
 print("   ✅ ADK Agent tools and A2A JSON Agent Card passed unit tests.")
 ' "${ROOT_DIR}" "${ROOT_DIR}/agents/a2a_agent_card/double_click_a2a_agent_card.json"
 
-# 4. Verify Part 3 Widget & UI Terraform module exists and contains required resources
+# 4. Verify Part 3 Widget & UI Terraform module exists
 echo "4️⃣  Checking Part 3 Widget & UI Terraform module (terraform/widget_ui.tf)..."
 grep -q "google_discovery_engine_widget_config" "${ROOT_DIR}/terraform/widget_ui.tf"
 grep -q "SEARCH_WITH_FOLLOW_UPS" "${ROOT_DIR}/terraform/widget_ui.tf"
 grep -q "features =" "${ROOT_DIR}/terraform/discovery_engine.tf"
 echo "   ✅ Part 3 Widget Config and Feature Management blocks verified."
 
-# 5. Validate Bash setup script syntax
-echo "5️⃣  Checking Bash syntax on scripts/setup_infra.sh..."
+# 5. Verify Part 4 Observability Terraform module & Golden Evaluation Suite
+echo "5️⃣  Checking Part 4 Observability module (terraform/observability.tf) & running Golden Evaluation..."
+grep -q "google_bigquery_dataset" "${ROOT_DIR}/terraform/observability.tf"
+grep -q "google_logging_project_sink" "${ROOT_DIR}/terraform/observability.tf"
+grep -q "google_monitoring_dashboard" "${ROOT_DIR}/terraform/observability.tf"
+python3 "${ROOT_DIR}/agents/evaluate_agent.py"
+echo "   ✅ Part 4 Observability module and Golden Evaluation passed."
+
+# 6. Validate Bash setup script syntax
+echo "6️⃣  Checking Bash syntax on scripts/setup_infra.sh..."
 bash -n "${ROOT_DIR}/scripts/setup_infra.sh"
 echo "   ✅ scripts/setup_infra.sh syntax is clean."
 
-# 6. Validate modular Terraform configuration (init & validate)
-echo "6️⃣  Initializing and validating modular Terraform files..."
+# 7. Validate modular Terraform configuration (init & validate)
+echo "7️⃣  Initializing and validating modular Terraform files..."
 cd "${ROOT_DIR}/terraform"
 terraform init -backend=false > /dev/null
 terraform validate
-echo "   ✅ Terraform configuration (including widget_ui.tf) is valid."
+echo "   ✅ Terraform configuration (including observability.tf) is valid."
 
 echo "============================================================================"
-echo "🎉 ALL PART 1 + PART 2 + PART 3 TESTS PASSED!"
+echo "🎉 ALL PART 1 + PART 2 + PART 3 + PART 4 TESTS PASSED!"
 echo "============================================================================"
-

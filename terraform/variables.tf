@@ -129,3 +129,27 @@ variable "allowlisted_domains" {
 }
 
 
+# ----------------------------------------------------------------------------
+# 📌 Added since Article 4: Architecture, Observability & Log Export
+# ----------------------------------------------------------------------------
+
+variable "bq_log_sink_dataset_id" {
+  description = "Since Article 4: BigQuery Dataset ID where Cloud Logging exports Gemini Enterprise, Dialogflow CX, and Vertex AI Agent Engine conversation/audit logs."
+  type        = string
+  default     = "double_click_agent_logs"
+}
+
+variable "enable_cloud_trace" {
+  description = "Since Article 4: Whether OpenTelemetry distributed tracing (Cloud Trace) is enabled for the ADK Agent on Vertex AI Agent Engine."
+  type        = bool
+  default     = true
+}
+
+variable "enable_log_router_sink" {
+  description = "Since Article 4: Set to true if your caller identity has Logging Config Writer (roles/logging.configWriter / logging.sinks.create) to provision the project-level Cloud Logging -> BigQuery sink in addition to the BigQuery Observability Dataset & Table."
+  type        = bool
+  default     = false
+}
+
+
+
