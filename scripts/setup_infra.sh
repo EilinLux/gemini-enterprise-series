@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Gemini Enterprise Series — Automated Infrastructure Setup Script
-# Branch: 02-conversational-modeling (Part 1 + Part 2)
+# Branch: 03-ux-ui-and-accessibility (Part 1 + Part 2 + Part 3)
 #
 # Reads configuration from the single root `.env` file, exports `TF_VAR_*`
 # variables for Terraform, provisions Part 1 (Knowledge Base) + Part 2
-# (Dialogflow CX Agent, Playbook, Q&A Chat Engine, Gemini Enterprise App,
-# and ADK Agent Engine IAM), and seeds the data stores.
+# (Agents) + Part 3 (UX/UI, Branding Logo, Widget Config & Feature Management),
+# and seeds the data stores.
 # ============================================================================
 
 set -euo pipefail
@@ -26,14 +26,15 @@ source "${ENV_FILE}"
 set +a
 
 echo "============================================================================"
-echo "🚀 Setting up Gemini Enterprise Infrastructure (Part 1 + Part 2: Agents)"
+echo "🚀 Setting up Gemini Enterprise Infrastructure (Part 1 + Part 2 + Part 3: UX/UI)"
 echo "   Project ID:   ${PROJECT_ID}"
 echo "   Region:       ${REGION}"
 echo "   DE Location:  ${DISCOVERY_ENGINE_LOCATION}"
 echo "   App Name:     ${APP_NAME} (${COMPANY_NAME})"
+echo "   Brand Logo:   ${COMPANY_LOGO_URL}"
 echo "============================================================================"
 
-# 2. Export Terraform variables mapped from .env (Part 1 + Part 2)
+# 2. Export Terraform variables mapped from .env (Part 1 + Part 2 + Part 3)
 export TF_VAR_project_id="${PROJECT_ID}"
 export TF_VAR_region="${REGION}"
 export TF_VAR_discovery_engine_location="${DISCOVERY_ENGINE_LOCATION}"
@@ -47,6 +48,11 @@ export TF_VAR_dialogflow_time_zone="${DIALOGFLOW_TIME_ZONE}"
 export TF_VAR_dialogflow_default_language="${DIALOGFLOW_DEFAULT_LANGUAGE}"
 export TF_VAR_adk_agent_display_name="${ADK_AGENT_DISPLAY_NAME}"
 export TF_VAR_gemini_model="${GEMINI_MODEL}"
+export TF_VAR_company_logo_url="${COMPANY_LOGO_URL}"
+export TF_VAR_shortcut_title="${SHORTCUT_TITLE}"
+export TF_VAR_shortcut_url="${SHORTCUT_URL}"
+export TF_VAR_allowlisted_domains="${ALLOWLISTED_DOMAINS}"
+
 
 # 3. Run Terraform Init & Plan/Apply
 cd "${ROOT_DIR}/terraform"

@@ -97,5 +97,22 @@ resource "google_discovery_engine_search_engine" "gemini_enterprise_app" {
   knowledge_graph_config {
     enable_private_knowledge_graph = true
   }
+
+  # 📌 Added since Article 3: Feature Management Governance (Admin UI Toggles)
+  #    Controls what end-users can see and do inside the DoubleClick Enterprise Web App:
+  #    - Enables Agent Gallery, No-Code Agent Designer, Prompt Gallery, People Search, and Memory
+  #    - Requires Admin Approval before user-created agents are shared organization-wide
+  features = {
+    "agent-gallery"                        = "FEATURE_STATE_ON"
+    "no-code-agent-builder"                = "FEATURE_STATE_ON"
+    "prompt-gallery"                       = "FEATURE_STATE_ON"
+    "notebook-lm"                          = "FEATURE_STATE_ON"
+    "people-search-org-chart"              = "FEATURE_STATE_ON"
+    "personalization-memory"               = "FEATURE_STATE_ON"
+    "personalization-suggested-highlights" = "FEATURE_STATE_ON"
+    "disable-agent-sharing"                = "FEATURE_STATE_OFF"
+    "agent-sharing-without-admin-approval" = "FEATURE_STATE_OFF"
+  }
 }
+
 

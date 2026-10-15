@@ -60,7 +60,6 @@ output "ces_studio_app_name" {
   value       = var.enable_ces_studio_app ? google_ces_app.double_click_ces_studio_app[0].name : "Disabled (Set TF_VAR_enable_ces_studio_app=true if you have roles/ces.admin; note that startPlaybook is automatically enabled on our Dialogflow CX Agent for Conversational Agents Studio!)"
 }
 
-
 output "gemini_enterprise_assistant_name" {
   description = "Added in Article 2: Resource name of the Default Assistant configured inside the Gemini Enterprise App."
   value       = "${google_discovery_engine_search_engine.gemini_enterprise_app.name}/assistants/default_assistant"
@@ -82,3 +81,30 @@ output "adk_deploy_cli_command" {
       ./agents/adk_double_click_agent
   EOT
 }
+
+# ----------------------------------------------------------------------------
+# 📌 Added since Article 3: UX/UI, Widget Config & Web Component Snippet
+# ----------------------------------------------------------------------------
+
+output "widget_config_name" {
+  description = "Added in Article 3: Full resource name of the configured Gemini Enterprise Widget & Branding config."
+  value       = google_discovery_engine_widget_config.double_click_widget_config.name
+}
+
+output "widget_obfuscated_config_id" {
+  description = "Added in Article 3: Obfuscated configId used inside the <gen-search-widget> HTML web component."
+  value       = google_discovery_engine_widget_config.double_click_widget_config.config_id
+}
+
+output "embedded_widget_html_snippet" {
+  description = "Added in Article 3: Ready-to-embed HTML snippet for the DoubleClick Enterprise <gen-search-widget>."
+  value       = <<-EOT
+    <script src="https://cloud.google.com/ai/gen-app-builder/client?hl=en_US"></script>
+    <gen-search-widget
+      configId="${google_discovery_engine_widget_config.double_click_widget_config.config_id}"
+      triggerId="searchWidgetTrigger">
+    </gen-search-widget>
+    <input placeholder="Double-click into company knowledge..." id="searchWidgetTrigger" />
+  EOT
+}
+
