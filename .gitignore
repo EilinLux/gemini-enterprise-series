@@ -1,0 +1,35 @@
+# Local environment configuration (never commit real secrets)
+.env
+*.tfvars
+!terraform.tfvars.example
+
+# Terraform state & provider cache
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
+# Python virtual environments & cache
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.pytest_cache/
+
+# OS & Editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Medium Article Drafts (keep locally on disk, never commit to Git)
+part-*.md
+

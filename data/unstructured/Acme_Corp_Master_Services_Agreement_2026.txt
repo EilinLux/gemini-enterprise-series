@@ -1,0 +1,19 @@
+MASTER SERVICES AGREEMENT & RENEWAL ADDENDUM (2026)
+Contract ID: CTR-ACME-2026-089
+Client Entity: Acme Corporation ("Client")
+Provider Entity: DoubleClick Enterprise S.r.l. ("Provider")
+Contract Status: ACTIVE — UP FOR RENEWAL
+Renewal Date: November 15, 2026
+Annual Contract Value (ACV): $420,000 USD
+Assigned Account Executive: Zelda Ailine Luconi (zelda@doubleclick.example.com)
+
+1. SCOPE OF SERVICES
+Provider shall deliver managed Enterprise AI Agent orchestration, BigQuery data warehouse integration, and 24/7 SRE observability for Client's retail omni-channel analytics platform ("Project Double-Click").
+
+2. SLA & SUPPLIER DEPENDENCY NOTICE
+Guaranteed uptime is 99.95%. Note: As documented in Q3 Engineering Post-Mortem (Ref: INC-402), a 14-day deployment delay on Project Alpha was caused by a legacy hardware supply chain bottleneck from external vendor CloudNet Hardware Ltd.
+
+3. TERMINATION & RENEWAL CLAUSES
+- Auto-Renewal: This Agreement automatically renews for successive 12-month terms on November 15, 2026 unless either party provides written notice at least 60 days prior.
+- Termination for Convenience: Client may terminate with 90 days written notice and payment of a 15% early termination fee on the remaining ACV.
+- Enterprise Tier Discount: If Client expands seat licenses by 25% prior to Renewal Date, a 15% volume discount applies to all Gemini Enterprise Plus seats.

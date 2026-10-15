@@ -1,0 +1,17 @@
+DoubleClick Enterprise — Employee Handbook & Work From Home (WFH) Policy V2
+Effective Date: January 1, 2026
+Owner: People & Culture / Corporate Security
+Document ID: DCE-POL-2026-WFH
+
+1. PURPOSE & SCOPE
+This policy applies to all full-time employees and contractors at DoubleClick Enterprise across our global offices (Milan, London, New York).
+
+2. HYBRID WORK & CORE HOURS
+- Eligibility: All full-time employees are eligible for hybrid remote work up to 3 days per week.
+- Core Collaboration Hours: All employees must be reachable on Google Chat, Google Meet, and Slack between 10:00 AM and 4:00 PM local time.
+- Home Office Stipend: Every employee is entitled to a €750 (or $750 USD) ergonomic home office stipend every 24 months. To request reimbursement, submit an IT & Facilities Ticket in ServiceNow / Jira using the "WFH-Stipend" category.
+
+3. SECURITY & DATA CLASSIFICATION RULES
+- Tier 1 (Public): Marketing brochures and published blog posts.
+- Tier 2 (Internal): Project documentation, sprint backlogs, and standard client contracts. Must remain within Google Workspace, SharePoint, or BigQuery.
+- Tier 3 (Confidential / Restricted): M&A documents, Project Phoenix migration plans, and on-premises financial ledgers. Access requires Security Clearance Level 2 and must traverse Private Service Connect (PSC) with Customer-Managed Encryption Keys (CMEK).
