@@ -1,0 +1,4 @@
+{"transaction_id": "TX-1001", "channel": "website_sales_table", "product_line": "Summer Clothing Line", "sale_date": "2026-06-14", "store_region": "EU-Milan", "amount_usd": 80000.00}
+{"transaction_id": "TX-1002", "channel": "pos_sales_table", "product_line": "Summer Clothing Line", "sale_date": "2026-06-14", "store_region": "EU-Rome", "amount_usd": 50000.00}
+{"transaction_id": "TX-1003", "channel": "mobile_app_sales_table", "product_line": "Summer Clothing Line", "sale_date": "2026-06-14", "store_region": "EU-Milan", "amount_usd": 20000.00}
+{"transaction_id": "TX-1004", "channel": "website_sales_table", "product_line": "Winter Outerwear", "sale_date": "2026-01-20", "store_region": "US-East", "amount_usd": 64000.00}

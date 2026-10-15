@@ -1,0 +1,12 @@
+DoubleClick Enterprise — IT & Engineering Security Runbook
+Document ID: DCE-SEC-RUNBOOK-04
+Topic: Private Service Connect (PSC), VPC Service Controls, and Incident Response
+
+1. ON-PREMISES & MULTI-CLOUD CONNECTIVITY
+When connecting Gemini Enterprise to self-hosted sources (such as our legacy Oracle ERP on-premises or private GKE clusters), public internet egress is strictly prohibited.
+All traffic must route through Google Cloud Private Service Connect (PSC) producer/consumer endpoints inside `tenant-vpc` and `producer-vpc` with Cloud Router BGP ASN 64512 / 65001.
+
+2. INCIDENT RESPONSE & TICKET ESCALATION
+- P1 Critical Outage (VPN, SSO/Workforce Identity, or Production Agent Engine 5xx > 2%): Page the On-Call SRE immediately and open a P1 Jira ticket in project `DCE-OPS`.
+- Project Phoenix Status: Currently ON_HOLD pending final firewall rule sign-off from the CISO team.
+- Project Double-Click Status: ACTIVE in production across all EU and US regions.

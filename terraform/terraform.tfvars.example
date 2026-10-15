@@ -1,0 +1,5 @@
+project_id                = "your-gcp-project-id"
+region                    = "us-central1"
+discovery_engine_location = "global"
+app_name                  = "double-click"
+company_name              = "Double Click Enterprise"
