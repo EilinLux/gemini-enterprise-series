@@ -12,7 +12,7 @@ variable "project_id" {
 }
 
 variable "region" {
-  description = "Since Article 1: Default GCP region for regional resources (BigQuery, GCS)."
+  description = "Since Article 1: Default GCP region for regional resources (BigQuery, GCS, Vertex AI Agent Engine)."
   type        = string
   default     = "europe-west1"
 }
@@ -58,3 +58,45 @@ variable "federated_connector_source" {
   type        = string
   default     = "jira"
 }
+
+# ----------------------------------------------------------------------------
+# 📌 Added since Article 2: Conversational Modeling (Dialogflow CX & ADK)
+# ----------------------------------------------------------------------------
+
+variable "dialogflow_time_zone" {
+  description = "Since Article 2: Time zone for the Conversational Agent / Dialogflow CX Agent."
+  type        = string
+  default     = "Europe/Rome"
+}
+
+variable "dialogflow_default_language" {
+  description = "Since Article 2: Default language code for the Conversational Agent."
+  type        = string
+  default     = "en"
+}
+
+variable "adk_agent_display_name" {
+  description = "Since Article 2: Display name for the ADK Agent deployed on Vertex AI Agent Engine."
+  type        = string
+  default     = "double-click-adk-concierge"
+}
+
+variable "gemini_model" {
+  description = "Since Article 2: Default Gemini foundation model used by the ADK Agent."
+  type        = string
+  default     = "gemini-2.5-pro"
+}
+
+variable "grant_project_iam_roles" {
+  description = "Since Article 2: Set to true if your caller identity has Project IAM Admin (resourcemanager.projects.setIamPolicy) to bind project-level roles in addition to resource-level GCS/BigQuery IAM bindings."
+  type        = bool
+  default     = false
+}
+
+variable "enable_ces_studio_app" {
+  description = "Since Article 2: Set to true if your caller identity has Customer Engagement Suite Admin (ces.apps.create) to also provision a standalone google_ces_app alongside Dialogflow CX."
+  type        = bool
+  default     = false
+}
+
+
