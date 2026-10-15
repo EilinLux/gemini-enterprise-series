@@ -4,6 +4,7 @@
 # 📌 Introduced in: Article 1 (Part 1 — 📚 Knowledge Base Management)
 # 📌 Updated in:    Article 2 (Part 2 — 🗣️ Conversational Modeling)
 # 📌 Updated in:    Article 4 (Part 4 — 📈 Architecture & Monitoring)
+# 📌 Updated in:    Article 5 (Part 5 — 🛡️ Integration & Security)
 # ============================================================================
 
 locals {
@@ -29,10 +30,16 @@ locals {
     "monitoring.googleapis.com",      # Cloud Monitoring metrics & custom Agent Observability Dashboards
   ]
 
+  # 📌 Added since Article 5: Security & Secret Manager API for OAuth 2.0 Action Credentials
+  part_5_apis = [
+    "secretmanager.googleapis.com",   # Secret Manager vault for Jira / Salesforce OAuth 2.0 Client Secrets
+  ]
+
   required_apis = concat(
     local.part_1_apis,
     local.part_2_apis,
     local.part_4_apis,
+    local.part_5_apis,
   )
 }
 

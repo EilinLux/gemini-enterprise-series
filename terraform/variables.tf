@@ -152,4 +152,34 @@ variable "enable_log_router_sink" {
 }
 
 
+# ----------------------------------------------------------------------------
+# 📌 Added since Article 5: Integration, Security, OAuth 2.0 & Workforce Identity
+# ----------------------------------------------------------------------------
+
+variable "oauth_action_secret_id" {
+  description = "Since Article 5: Secret Manager Secret ID storing the OAuth 2.0 Client Secret for our Jira / ServiceNow Action."
+  type        = string
+  default     = "double-click-jira-action-oauth-secret"
+}
+
+variable "enable_workforce_identity" {
+  description = "Since Article 5: Set to true to configure Discovery Engine IdP-wide ACL configuration for Workforce Identity Federation."
+  type        = bool
+  default     = false
+}
+
+variable "workforce_pool_id" {
+  description = "Since Article 5: Workforce Identity Federation pool ID when integrating external IdPs (Entra ID / Okta)."
+  type        = string
+  default     = "double-click-wif-pool"
+}
+
+variable "portal_port" {
+  description = "Since Article 5: Local HTTP port for serving the DoubleClick Enterprise Intranet Web App (`webapp/`)."
+  type        = number
+  default     = 8080
+}
+
+
+
 

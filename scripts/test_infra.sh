@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================================
 # Gemini Enterprise Series — Automated Verification & Testing Suite
-# Branch: 04-architecture-and-monitoring (Part 1 + Part 2 + Part 3 + Part 4)
+# Branch: 05-integration-and-security (Complete 5-Part Enterprise Stack)
 # ============================================================================
 
 set -euo pipefail
@@ -9,11 +9,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "============================================================================"
-echo "🧪 Running Repository Verification Suite — Branch 04 (Architecture & Monitoring)"
+echo "🧪 Running Repository Verification Suite — Branch 05 (Integration & Security)"
 echo "============================================================================"
 
-# 1. Verify .env.example has all required Part 1–4 keys
-echo "1️⃣  Checking .env.example configuration keys (Parts 1–4)..."
+# 1. Verify .env.example has all required Part 1–5 keys
+echo "1️⃣  Checking .env.example configuration keys (Parts 1–5)..."
 REQUIRED_KEYS=(
   "PROJECT_ID"
   "REGION"
@@ -33,6 +33,10 @@ REQUIRED_KEYS=(
   "BQ_LOGS_DATASET_ID"
   "GOOGLE_CLOUD_AGENT_ENGINE_ENABLE_TELEMETRY"
   "OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT"
+  "ENABLE_WORKFORCE_IDENTITY"
+  "WORKFORCE_POOL_ID"
+  "OAUTH_ACTION_SECRET_ID"
+  "PORTAL_PORT"
 )
 
 for key in "${REQUIRED_KEYS[@]}"; do
@@ -89,7 +93,7 @@ grep -q "SEARCH_WITH_FOLLOW_UPS" "${ROOT_DIR}/terraform/widget_ui.tf"
 grep -q "features =" "${ROOT_DIR}/terraform/discovery_engine.tf"
 echo "   ✅ Part 3 Widget Config and Feature Management blocks verified."
 
-# 5. Verify Part 4 Observability Terraform module & Golden Evaluation Suite
+# 5. Verify Part 4 Observability module & Golden Evaluation Suite
 echo "5️⃣  Checking Part 4 Observability module (terraform/observability.tf) & running Golden Evaluation..."
 grep -q "google_bigquery_dataset" "${ROOT_DIR}/terraform/observability.tf"
 grep -q "google_logging_project_sink" "${ROOT_DIR}/terraform/observability.tf"
@@ -97,18 +101,28 @@ grep -q "google_monitoring_dashboard" "${ROOT_DIR}/terraform/observability.tf"
 python3 "${ROOT_DIR}/agents/evaluate_agent.py"
 echo "   ✅ Part 4 Observability module and Golden Evaluation passed."
 
-# 6. Validate Bash setup script syntax
-echo "6️⃣  Checking Bash syntax on scripts/setup_infra.sh..."
+# 6. Verify Part 5 Security Terraform module & Intranet Web Portal
+echo "6️⃣  Checking Part 5 Security module (terraform/security.tf) & Intranet Web Portal (webapp/)..."
+grep -q "google_secret_manager_secret" "${ROOT_DIR}/terraform/security.tf"
+grep -q "google_secret_manager_secret_iam_member" "${ROOT_DIR}/terraform/security.tf"
+[[ -s "${ROOT_DIR}/webapp/index.html" ]] || { echo "❌ Missing webapp/index.html"; exit 1; }
+[[ -s "${ROOT_DIR}/webapp/styles.css" ]] || { echo "❌ Missing webapp/styles.css"; exit 1; }
+[[ -s "${ROOT_DIR}/webapp/app.js" ]] || { echo "❌ Missing webapp/app.js"; exit 1; }
+grep -q "gen-search-widget" "${ROOT_DIR}/webapp/index.html"
+echo "   ✅ Part 5 Secret Manager vault and Intranet Web Portal verified."
+
+# 7. Validate Bash setup script syntax
+echo "7️⃣  Checking Bash syntax on scripts/setup_infra.sh..."
 bash -n "${ROOT_DIR}/scripts/setup_infra.sh"
 echo "   ✅ scripts/setup_infra.sh syntax is clean."
 
-# 7. Validate modular Terraform configuration (init & validate)
-echo "7️⃣  Initializing and validating modular Terraform files..."
+# 8. Validate modular Terraform configuration (init & validate)
+echo "8️⃣  Initializing and validating modular Terraform files..."
 cd "${ROOT_DIR}/terraform"
 terraform init -backend=false > /dev/null
 terraform validate
-echo "   ✅ Terraform configuration (including observability.tf) is valid."
+echo "   ✅ Terraform configuration (including security.tf) is valid."
 
 echo "============================================================================"
-echo "🎉 ALL PART 1 + PART 2 + PART 3 + PART 4 TESTS PASSED!"
+echo "🎉 ALL PART 1 + PART 2 + PART 3 + PART 4 + PART 5 TESTS PASSED!"
 echo "============================================================================"
