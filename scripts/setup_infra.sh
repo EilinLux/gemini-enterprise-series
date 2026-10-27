@@ -48,7 +48,19 @@ export TF_VAR_dialogflow_default_language="${DIALOGFLOW_DEFAULT_LANGUAGE}"
 export TF_VAR_adk_agent_display_name="${ADK_AGENT_DISPLAY_NAME}"
 export TF_VAR_gemini_model="${GEMINI_MODEL}"
 
-# 3. Run Terraform Init & Plan/Apply
+# 3. Enable Required Google Cloud APIs (Parts 1 & 2)
+echo "🔌 Enabling required Google Cloud APIs for Parts 1 & 2 on ${PROJECT_ID}..."
+REQUIRED_APIS=(
+  "discoveryengine.googleapis.com"
+  "bigquery.googleapis.com"
+  "storage.googleapis.com"
+  "dialogflow.googleapis.com"
+  "aiplatform.googleapis.com"
+  "iam.googleapis.com"
+)
+gcloud services enable "${REQUIRED_APIS[@]}" --project="${PROJECT_ID}"
+
+# 4. Run Terraform Init & Plan/Apply
 cd "${ROOT_DIR}/terraform"
 terraform init
 
@@ -59,23 +71,29 @@ if [[ "${1:-}" == "--dry-run" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "--plan" ]]; then
+  echo "🔍 Running Terraform plan (using .env)..."
+  terraform plan
+  exit 0
+fi
+
 terraform apply -auto-approve
 
-# 4. Populate BigQuery Structured Tables with DoubleClick Enterprise JSONL data
-echo "📊 Seeding BigQuery tables (${BQ_DATASET_ID}.project_db & retail_sales)..."
-bq --project_id="${PROJECT_ID}" load \
+# 5. Populate BigQuery Structured Tables with DoubleClick Enterprise JSONL data
+echo "📊 Seeding BigQuery tables (${BQ_DATASET_ID}.project_db & retail_sales in ${REGION})..."
+bq --location="${REGION}" --project_id="${PROJECT_ID}" load \
   --source_format=NEWLINE_DELIMITED_JSON \
   --replace \
   "${BQ_DATASET_ID}.project_db" \
   "${ROOT_DIR}/data/structured/project_db.jsonl"
 
-bq --project_id="${PROJECT_ID}" load \
+bq --location="${REGION}" --project_id="${PROJECT_ID}" load \
   --source_format=NEWLINE_DELIMITED_JSON \
   --replace \
   "${BQ_DATASET_ID}.retail_sales" \
   "${ROOT_DIR}/data/structured/retail_sales.jsonl"
 
-# 5. Trigger Discovery Engine Document Import from GCS & BigQuery
+# 6. Trigger Discovery Engine Document Import from GCS & BigQuery
 echo "📚 Triggering Discovery Engine Data Store imports via REST API..."
 ACCESS_TOKEN="$(gcloud auth print-access-token)"
 API_HOST="discoveryengine.googleapis.com"
@@ -83,7 +101,8 @@ if [[ "${DISCOVERY_ENGINE_LOCATION}" != "global" ]]; then
   API_HOST="${DISCOVERY_ENGINE_LOCATION}-discoveryengine.googleapis.com"
 fi
 
-curl -s -X POST \
+echo "   ↳ Starting GCS Unstructured document ingestion..."
+GCS_RESP=$(curl -s -X POST \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
@@ -94,9 +113,11 @@ curl -s -X POST \
       \"dataSchema\": \"content\"
     },
     \"reconciliationMode\": \"INCREMENTAL\"
-  }" > /dev/null
+  }")
+echo "   ↳ GCS Import Operation: ${GCS_RESP}"
 
-curl -s -X POST \
+echo "   ↳ Starting BigQuery Structured data ingestion..."
+BQ_RESP=$(curl -s -X POST \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
@@ -109,11 +130,12 @@ curl -s -X POST \
       \"dataSchema\": \"custom\"
     },
     \"reconciliationMode\": \"FULL\"
-  }" > /dev/null
+  }")
+echo "   ↳ BigQuery Import Operation: ${BQ_RESP}"
 
-# 6. Configure Gemini Enterprise App Default Assistant (System Instructions & Banned Phrases)
+# 7. Configure Gemini Enterprise App Default Assistant (System Instructions & Banned Phrases)
 echo "🤖 Configuring Default Assistant inside ${APP_NAME}-enterprise-app..."
-curl -s -X PATCH \
+PATCH_RESP=$(curl -s -X PATCH \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
@@ -135,9 +157,11 @@ curl -s -X PATCH \
         }
       ]
     }
-  }" > /dev/null
+  }")
+echo "   ↳ Assistant Configuration: ${PATCH_RESP}"
 
 echo "✅ Part 1 & Part 2 infrastructure, Gemini Enterprise App (with connected Data Stores), and Conversational Agents deployed!"
 echo "👉 Run 'terraform -chdir=terraform output dialogflow_cx_agent_resource_name' to copy your Dialogflow Agent path."
 echo "👉 Run 'python3 agents/adk_double_click_agent/deploy_agent_engine.py' to deploy the ADK Agent to Vertex AI Agent Engine."
+
 
