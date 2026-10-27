@@ -56,14 +56,14 @@ fi
 terraform apply -auto-approve
 
 # 4. Populate BigQuery Structured Tables with DoubleClick Enterprise JSONL data
-echo "📊 Seeding BigQuery tables (${BQ_DATASET_ID}.project_db & retail_sales)..."
-bq --project_id="${PROJECT_ID}" load \
+echo "📊 Seeding BigQuery tables (${BQ_DATASET_ID}.project_db & retail_sales in ${REGION})..."
+bq --location="${REGION}" --project_id="${PROJECT_ID}" load \
   --source_format=NEWLINE_DELIMITED_JSON \
   --replace \
   "${BQ_DATASET_ID}.project_db" \
   "${ROOT_DIR}/data/structured/project_db.jsonl"
 
-bq --project_id="${PROJECT_ID}" load \
+bq --location="${REGION}" --project_id="${PROJECT_ID}" load \
   --source_format=NEWLINE_DELIMITED_JSON \
   --replace \
   "${BQ_DATASET_ID}.retail_sales" \
@@ -78,7 +78,8 @@ if [[ "${DISCOVERY_ENGINE_LOCATION}" != "global" ]]; then
 fi
 
 # Import unstructured documents from GCS into the Unstructured Data Store
-curl -s -X POST \
+echo "   ↳ Starting GCS Unstructured document ingestion..."
+GCS_RESP=$(curl -s -X POST \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
@@ -89,10 +90,12 @@ curl -s -X POST \
       \"dataSchema\": \"content\"
     },
     \"reconciliationMode\": \"INCREMENTAL\"
-  }" > /dev/null
+  }")
+echo "   ↳ GCS Import Operation: ${GCS_RESP}"
 
 # Import structured rows from BigQuery into the Structured Data Store
-curl -s -X POST \
+echo "   ↳ Starting BigQuery Structured data ingestion..."
+BQ_RESP=$(curl -s -X POST \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
@@ -105,6 +108,7 @@ curl -s -X POST \
       \"dataSchema\": \"custom\"
     },
     \"reconciliationMode\": \"FULL\"
-  }" > /dev/null
+  }")
+echo "   ↳ BigQuery Import Operation: ${BQ_RESP}"
 
 echo "✅ Part 1 Knowledge Base setup and ingestion triggered successfully!"

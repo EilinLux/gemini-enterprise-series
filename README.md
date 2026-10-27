@@ -45,106 +45,210 @@ DoubleClick Enterprise chose **Gemini Enterprise** (and the **Vertex AI Agent Bu
 | **`01-knowledge-base-management`** *(Current)* | **[Part 1 — 📚 Knowledge Base Management](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-1-knowledge-base-management.md)** | **[Part 1 EXTRA — Code & Terraform Setup](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-1-extra-code-and-terraform-setup.md)** | • **DoubleClick Enterprise** messy data scenario (`data/unstructured/` & `data/structured/`)<br>• Terraform for **Ingestion Data Stores** (GCS Graph RAG + BigQuery) & **Federated Connector** (`google_discovery_engine_data_connector`)<br>• Automated `.env`-driven `./scripts/setup_infra.sh` & `./scripts/test_infra.sh` |
 | **`02-conversational-modeling`** | **Part 2 — 🗣️ Conversational Modeling** *(Checkout branch `02-conversational-modeling`)* | **Part 2 EXTRA — Agent Code & Terraform Setup** *(Checkout branch `02-conversational-modeling`)* | • **Conversational Agent (Dialogflow CX)** + Generative Playbook in Terraform (`google_dialogflow_cx_agent`, `google_dialogflow_cx_playbook`)<br>• **ADK Python Agent** (`agents/adk_double_click_agent/`) + **A2A JSON Agent Card**<br>• Discovery Engine Chat/Search Engine bindings |
 | **`03-ux-ui-and-accessibility`** | **Part 3 — 🎨 UX/UI & Accessibility** *(Checkout branch `03-ux-ui-and-accessibility`)* | **Part 3 EXTRA — UI & Widget Terraform Setup** *(Checkout branch `03-ux-ui-and-accessibility`)* | • **Gemini Enterprise App** (`google_discovery_engine_search_engine`)<br>• **Widget & Branding Config** (`google_discovery_engine_widget_config`)<br>• REST API automation for Search UI, Logo, Pinned Shortcuts & Feature Management |
-| **`04-architecture-and-monitoring`** | **Part 4 — 📈 Architecture & Monitoring** *(Checkout branch `04-architecture-and-monitoring`)* | **Part 4 EXTRA — Observability & Eval Setup** *(Checkout branch `04-architecture-and-monitoring`)* | • **OpenTelemetry Tracing** (`Cloud Trace`) & IAM bindings<br>• **Cloud Logging $\rightarrow$ BigQuery Sink** (`google_logging_project_sink`)<br>• **Cloud Monitoring Custom Dashboard** (`google_monitoring_dashboard`) & GenAI Evaluation script |
 | **`05-integration-and-security`** | **Part 5 — 🛡️ Integration & Security** *(Checkout branch `05-integration-and-security`)* | **Part 5 EXTRA — Security, OAuth & Mock Web Portal** *(Checkout branch `05-integration-and-security`)* | • **Per-User OAuth 2.0 Actions**, **Secret Manager** (`google_secret_manager_secret`), **ACL Config** (`google_discovery_engine_acl_config`), & **CMEK/WIF**<br>• **Interactive Mocked Enterprise Intranet Web App (`webapp/`)** embedding the branded Gemini Enterprise Widget & OAuth Action consent simulator |
 
 ---
 
-## ⚠️ Prerequisites & Gemini Enterprise Licensing
+## ⚠️ Prerequisites & Google Cloud Account Setup
 
-1. **Google Cloud Project** with billing enabled.
-2. **Gemini Enterprise License (or 180-Day Free Trial):**
-   * In the Google Cloud Console, navigate to **Gemini Enterprise > Manage subscriptions** and activate **Gemini Enterprise Standard** or **Gemini Enterprise Plus** (or start the free trial).
-   * Ensure your user has `roles/discoveryengine.agentspaceAdmin` and `roles/owner` (or `roles/editor`).
-3. **Local Tools:**
-   * `gcloud` CLI (authenticated via `gcloud auth login` and `gcloud auth application-default login`)
-   * `terraform` (`>= 1.5.0`)
-   * `python3` (`>= 3.10`) and `bq` (BigQuery CLI)
+Before provisioning the infrastructure for **Part 1 (Knowledge Base Management)**, ensure your local environment and Google Cloud project meet these requirements:
+
+### 1. Required IAM Roles
+Your GCP user or service account must have the following IAM roles on the target project:
+* **`roles/editor`** (or `roles/owner`): Required to manage cloud resources and enable APIs.
+* **`roles/discoveryengine.editor`** (or `roles/discoveryengine.admin`): Required to create Data Stores, collections, and Gemini Enterprise Apps.
+* **`roles/storage.admin`**: Required to create GCS staging buckets and upload unstructured documents.
+* **`roles/bigquery.admin`**: Required to create BigQuery datasets and load structured JSONL tables.
+
+### 2. Local Tools
+Ensure you have the following CLI utilities installed:
+* **`gcloud` CLI** (`>= 480.0.0`)
+* **`terraform`** (`>= 1.5.0`)
+* **`python3`** (`>= 3.10`)
+* **`bq`** (Google Cloud BigQuery CLI, bundled with `gcloud`)
+* **`curl`**
 
 ---
 
-## 🛠️ How to Set Up the Infrastructure (Branch `01-knowledge-base-management`)
+## 🛠️ Step-by-Step Setup Guide (Branch `01-knowledge-base-management`)
 
-All infrastructure across every branch is controlled by a **single `.env` file** in the root directory (which is git-ignored so your private project ID is never committed).
+All infrastructure and scripts are driven by a **single `.env` configuration file** at the root of the project.
 
-### Step 0: Authenticate with Google Cloud
-Before running the setup script, authenticate both your `gcloud` CLI session and your Terraform Application Default Credentials (ADC):
+### Step 1: Authenticate `gcloud` and Application Default Credentials (ADC)
+Terraform and the setup scripts communicate with Google Cloud APIs using Application Default Credentials (ADC). Authenticate both your CLI and ADC:
+
 ```bash
-gcloud auth login
-gcloud auth application-default login
+# 1. Log in to gcloud and update Application Default Credentials (ADC) in one step:
+gcloud auth login your-email@example.com --update-adc
+
+# (Alternatively, you can run them separately):
+# gcloud auth login your-email@example.com
+# gcloud auth application-default login
 ```
 
-### Step 1: Configure `.env`
+### Step 2: Set the Active Project and ADC Quota Project
+To prevent quota and permission errors when Terraform calls Google Cloud APIs, configure both your active CLI project and your ADC quota project:
+
+```bash
+# Set your active gcloud project:
+gcloud config set project <YOUR_PROJECT_ID>
+
+# Crucial for Terraform & Google client libraries: set the ADC quota project
+gcloud auth application-default set-quota-project <YOUR_PROJECT_ID>
+```
+
+> [!IMPORTANT]
+> **Terms of Service (ToS) Precondition in New Projects / Sandboxes:**
+> If you are using a newly created Google Cloud project or a lab sandbox (such as `gcplab.me`), calling APIs or Terraform directly may return:
+> `FAILED_PRECONDITION: The terms of service 'cloud' for service(s) 'discoveryengine.googleapis.com' must be accepted.`
+> 
+> **How to resolve:**
+> 1. Open the [Google Cloud Console](https://console.cloud.google.com/?project=YOUR_PROJECT_ID) in your browser while logged in as your GCP user.
+> 2. Accept the Terms of Service banner (*"I agree to the Google Cloud Platform Terms of Service"* $\rightarrow$ Click **Agree and Continue**).
+> 3. Visit the [Vertex AI Search / Discovery Engine Console](https://console.cloud.google.com/gen-app-builder/data-stores?project=YOUR_PROJECT_ID) to ensure the service is activated.
+
+### Step 3: Configure the Unified `.env` File
+Create your local `.env` from the provided example template:
+
 ```bash
 cp .env.example .env
 ```
-Open `.env` and set your `PROJECT_ID`:
+
+Open `.env` in your editor and configure your project parameters:
+
 ```ini
-PROJECT_ID="your-gcp-project-id"
-REGION="europe-west1"
-DISCOVERY_ENGINE_LOCATION="global"
+# ============================================================================
+# Gemini Enterprise Series — Part 1 Configuration (.env)
+# ============================================================================
+
+# Core Google Cloud Settings
+PROJECT_ID="your-gcp-project-id"        # Replace with your actual GCP Project ID
+REGION="europe-west1"                   # Region for GCS bucket and BigQuery dataset
+DISCOVERY_ENGINE_LOCATION="global"      # Location for Discovery Engine Data Stores (global)
+
+# DoubleClick Enterprise Branding & App Naming
 APP_NAME="double-click"
 COMPANY_NAME="DoubleClick Enterprise"
+
+# Part 1: Knowledge Base Management (Ingestion + Federation)
+BQ_DATASET_ID="double_click_kb"
+GCS_BUCKET_SUFFIX="docs-staging"
+FEDERATED_CONNECTOR_SOURCE="jira"
+ENABLE_FEDERATED_CONNECTOR="false"      # Keep "false" for initial setup; set "true" once Jira credentials exist
 ```
 
-### Step 2: Provision the Infrastructure & Ingest Sample Data
-Run the automated setup script in the `scripts/` folder:
+### Step 4: Validate the Code & Schemas (Unit Tests & Dry-Run)
+Before creating any cloud resources, run the verification test suite:
+
+```bash
+# 1. Run unit tests, schema checks, and Terraform syntax validation:
+./scripts/test_infra.sh
+
+# 2. Run a Terraform dry-run plan:
+./scripts/setup_infra.sh --dry-run
+```
+
+### Step 5: Provision Infrastructure and Seed Sample Data
+Execute the automated provisioning script:
+
 ```bash
 ./scripts/setup_infra.sh
 ```
-**What `./scripts/setup_infra.sh` does on Branch 01:**
-1. Reads `.env` and exports `TF_VAR_*` variables.
-2. Runs `terraform init` and `terraform apply` inside `terraform/` to create:
-   * The GCS bucket (`gs://<YOUR_PROJECT_ID>-double-click-docs-staging` in `europe-west1`) and uploads our 3 unstructured DoubleClick Enterprise documents (`WFH_Policy_Update_V2.txt`, `Acme_Corp_Master_Services_Agreement_2026.txt`, `IT_Security_Onboarding_Playbook.txt`).
-   * The BigQuery dataset (`double_click_kb` in `europe-west1`) and structured tables (`project_db` and `retail_sales`).
-   * The **Unstructured Ingested Data Store** (`double-click-unstructured-ds`) with 500-token layout-based chunking.
-   * The **Structured BigQuery Data Store** (`double-click-structured-bq-ds`).
-   * The **Gemini Enterprise App** (`double-click-enterprise-app`, `app_type = "APP_TYPE_INTRANET"`) with **Private Knowledge Graph** enabled and **both Data Stores automatically connected** via `data_store_ids`!
-   * *(Optional)* The **Federated Third-Party SaaS Connector** (`google_discovery_engine_data_connector`) when `ENABLE_FEDERATED_CONNECTOR="true"`.
-3. Seeds `project_db` and `retail_sales` in BigQuery using `data/structured/*.jsonl`.
-4. Triggers the Discovery Engine `documents:import` REST API to index the GCS files and BigQuery rows.
+
+#### What `./scripts/setup_infra.sh` executes under the hood:
+1. **Reads `.env`** and exports matching `TF_VAR_*` variables to Terraform.
+2. **Enables Cloud APIs (`apis.tf`):**
+   * `discoveryengine.googleapis.com` (Gemini Enterprise / Vertex AI Search)
+   * `bigquery.googleapis.com` (BigQuery Structured Data Warehouse)
+   * `storage.googleapis.com` (Cloud Storage Document Archive)
+3. **Provisions Storage & Uploads Unstructured Docs (`storage.tf`):**
+   * Creates GCS bucket `gs://<PROJECT_ID>-double-click-docs-staging` in `europe-west1`.
+   * Uploads our 3 DoubleClick enterprise documents:
+     * `unstructured/WFH_Policy_Update_V2.txt` (Hybrid work core hours, home office stipend)
+     * `unstructured/Acme_Corp_Master_Services_Agreement_2026.txt` (Client legal contract, SLA penalty notes, vendor CloudNet Hardware)
+     * `unstructured/IT_Security_Onboarding_Playbook.txt` (PSC routing rules, P1 incident escalation)
+4. **Provisions BigQuery Dataset & Tables (`bigquery.tf`):**
+   * Creates dataset `double_click_kb` in `europe-west1`.
+   * Provisions schemas for `project_db` (internal project tracking) and `retail_sales` (omni-channel retail revenue).
+5. **Creates Discovery Engine Data Stores & App (`discovery_engine.tf`):**
+   * **Unstructured Data Store** (`double-click-unstructured-ds`): Configured with layout-based chunking (`chunk_size = 500`) and ancestor headings for Graph RAG.
+   * **Structured BigQuery Data Store** (`double-click-structured-bq-ds`): Points to the BigQuery dataset.
+   * **Gemini Enterprise App** (`double-click-enterprise-app`): Intranet App (`APP_TYPE_INTRANET`) with Private Knowledge Graph enabled, automatically binding both Data Stores!
+   * *(Optional)* Federated Data Connector (`google_discovery_engine_data_connector`) when `ENABLE_FEDERATED_CONNECTOR="true"`.
+6. **Populates BigQuery Structured Data:**
+   * Loads `data/structured/project_db.jsonl` into `double_click_kb.project_db`.
+   * Loads `data/structured/retail_sales.jsonl` into `double_click_kb.retail_sales`.
+7. **Triggers Document Ingestion:**
+   * Calls Discovery Engine `documents:import` REST API to index unstructured GCS documents.
+   * Calls Discovery Engine `documents:import` REST API to index structured BigQuery rows.
 
 ---
 
-## 🖥️ How to Verify the Provisioned Resources in the Google Cloud Console UI
+## 🔎 Automated Live Cloud Verification
 
-After running `./scripts/setup_infra.sh`, you can verify that every Part 1 resource exists, is populated, and is **connected to the Gemini Enterprise App** directly from the Google Cloud Console UI:
+You can verify all live provisioned resources on Google Cloud in one command:
 
-1. **Verify the Unstructured Documents in Cloud Storage:**
-   * Open the [Google Cloud Console — Cloud Storage Buckets](https://console.cloud.google.com/storage/browser).
-   * Click on the bucket named **`<YOUR_PROJECT_ID>-double-click-docs-staging`**.
-   * Open the `unstructured/` folder and verify that `WFH_Policy_Update_V2.txt`, `Acme_Corp_Master_Services_Agreement_2026.txt`, and `IT_Security_Onboarding_Playbook.txt` are present.
-2. **Verify the Structured Tables & Rows in BigQuery:**
-   * Open [Google Cloud Console — BigQuery Studio](https://console.cloud.google.com/bigquery).
-   * In the left **Explorer** pane, expand your project and click on the **`double_click_kb`** dataset.
-   * Click on the **`project_db`** and **`retail_sales`** tables, then switch to the **Preview** tab to confirm the rows (`Double-click`, `Phoenix`, `Alpha`, and retail channel transactions) are loaded.
-3. **Verify the Gemini Enterprise App & Connected Data Stores in the Console:**
-   * In the top search bar of the Cloud Console, search for **“Gemini Enterprise”** (or **“AI Applications”**) and click on **Apps**.
-   * Verify that **`DoubleClick Enterprise - Gemini Enterprise App`** (`double-click-enterprise-app`) is listed. Click on it and open **Connected data stores** (or **Data**) in the left menu to confirm that both **`double-click-unstructured-ds`** and **`double-click-structured-bq-ds`** are attached!
-   * Next, click on **Data Stores** in the main left-hand navigation (with **Location** set to **`global`**):
-     * **`DoubleClick Enterprise - Unstructured Docs (Ingested Graph RAG)`** (`double-click-unstructured-ds`): Verify that **Connected apps** shows `DoubleClick Enterprise - Gemini Enterprise App`, and check the **Data** and **Activity** tabs to verify that the 3 GCS documents have been parsed and chunked.
-     * **`DoubleClick Enterprise - Structured BigQuery Data Store`** (`double-click-structured-bq-ds`): Verify that **Connected apps** shows `DoubleClick Enterprise - Gemini Enterprise App`, and inspect the **Schema** and **Activity** tabs to verify the BigQuery `project_db` import status.
-   * *(If `ENABLE_FEDERATED_CONNECTOR="true"`)* Check the **Connected data stores / Connectors** list to see the **`DoubleClick Enterprise - Federated JIRA Connector`** collection.
+```bash
+./scripts/verify_live_infra.sh
+```
+
+This script automatically verifies:
+1. GCS bucket existence and presence of the 3 unstructured documents (`WFH_Policy_Update_V2.txt`, `Acme_Corp_Master_Services_Agreement_2026.txt`, `IT_Security_Onboarding_Playbook.txt`).
+2. BigQuery dataset and validates table row counts (`project_db` and `retail_sales`).
+3. Discovery Engine Unstructured and Structured Data Stores via REST API.
+4. Gemini Enterprise App and confirms both Data Stores are connected.
 
 ---
 
-## 🧪 How to Test the Repository
+## 🖥️ How to Verify the Provisioned Resources in Google Cloud Console
 
-You can validate the entire repository (environment variables, JSONL schemas, Bash scripts, and Terraform `validate`) by running:
+Once `./scripts/setup_infra.sh` completes, you can also inspect every component directly in the Google Cloud Console UI:
 
-```bash
-./scripts/test_infra.sh
-```
+### 1. Cloud Storage (Unstructured Documents)
+* Open [Cloud Storage Buckets](https://console.cloud.google.com/storage/browser).
+* Click on **`<PROJECT_ID>-double-click-docs-staging`**.
+* Open the `unstructured/` folder and verify that:
+  * `WFH_Policy_Update_V2.txt`
+  * `Acme_Corp_Master_Services_Agreement_2026.txt`
+  * `IT_Security_Onboarding_Playbook.txt`
+  are present and populated.
 
-Or run the setup script in dry-run validation mode:
-```bash
-./scripts/setup_infra.sh --dry-run
-```
+### 2. BigQuery Studio (Structured Operational Tables)
+* Open [BigQuery Studio](https://console.cloud.google.com/bigquery).
+* In the left **Explorer** pane, expand your project $\rightarrow$ **`double_click_kb`**.
+* Select the **`project_db`** table and click the **Preview** tab:
+  * Confirm rows for `Double-click` (`ACTIVE`), `Phoenix` (`ON_HOLD`), and `Alpha` (`DELAYED`) are visible.
+* Select the **`retail_sales`** table and click the **Preview** tab:
+  * Confirm transactions across `pos_sales_table`, `website_sales_table`, and `mobile_app_sales_table` are loaded.
+
+### 3. Gemini Enterprise / Discovery Engine Console
+* Open [Vertex AI Search / Gemini Enterprise](https://console.cloud.google.com/gen-app-builder/engines).
+* **Verify the App:** Under **Apps**, select **`DoubleClick Enterprise - Gemini Enterprise App`** (`double-click-enterprise-app`):
+  * Open **Connected data stores** in the left menu.
+  * Confirm that both **`double-click-unstructured-ds`** and **`double-click-structured-bq-ds`** are connected.
+* **Verify the Data Stores:** In the left navigation, click on **Data Stores** (ensure location is set to **`global`**):
+  * Click on **`double-click-unstructured-ds`** $\rightarrow$ Check the **Activity** tab to see the GCS document import job status. Once completed, the **Documents** tab will list the 3 indexed documents.
+  * Click on **`double-click-structured-bq-ds`** $\rightarrow$ Check the **Activity** tab to confirm the BigQuery import job and the **Schema** tab showing mapped fields.
+
+---
+
+## 🔧 Troubleshooting & Common Gotchas
+
+| Issue | Cause | Resolution |
+| :--- | :--- | :--- |
+| `FAILED_PRECONDITION: The terms of service 'cloud' ... must be accepted` | The target project has not yet accepted Google Cloud Terms of Service. | Open `https://console.cloud.google.com/?project=<PROJECT_ID>` in your browser with the user account, click **Agree and Continue**, then re-run `./scripts/setup_infra.sh`. |
+| `Your active project does not match the quota project` | Application Default Credentials (ADC) has a different quota project than `PROJECT_ID`. | Run `gcloud auth application-default set-quota-project <PROJECT_ID>`. |
+| `Error 403: Caller does not have required permission to use project` | Missing IAM roles on the GCP account. | Ensure your user has `roles/editor` (or `roles/owner`), `roles/discoveryengine.editor`, `roles/storage.admin`, and `roles/bigquery.admin`. |
+| BigQuery `Not found: Dataset` during import | Region mismatch between BigQuery dataset and load command. | `.env` sets `REGION="europe-west1"`. Both `bigquery.tf` and `scripts/setup_infra.sh` pass `--location="${REGION}"`. |
+| Discovery Engine API 404 on regional endpoints | Discovery Engine location mismatch. | Keep `DISCOVERY_ENGINE_LOCATION="global"` in `.env` for standard multi-tenant enterprise data stores. |
 
 ---
 
 ## ⏭️ Next Step
-Once you have explored Part 1, switch to the next branch to add **Conversational Modeling (Dialogflow CX, ADK Agent Engine, and A2A)**:
+
+Once you have validated Part 1, proceed to **Part 2 (Conversational Modeling)** to build our Dialogflow CX Agent Playbook, Vertex AI Agent Engine ADK Python Agent, and A2A Agent Card:
+
 ```bash
 git checkout 02-conversational-modeling
 ```
+
