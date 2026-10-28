@@ -31,9 +31,9 @@ Before adopting Gemini Enterprise, DoubleClick employees wasted hours every day 
 
 | Branch | Main Medium Article (Concepts & Console UI) | Companion EXTRA Article (Code & Terraform Deep-Dive) | What Gets Added in This Branch |
 | :--- | :--- | :--- | :--- |
-| **`01-knowledge-base-management`** | **[Part 1 — 📚 Knowledge Base Management](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-1-knowledge-base-management.md)** | **[Part 1 EXTRA — Code & Terraform Setup](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-1-extra-code-and-terraform-setup.md)** | • **DoubleClick Enterprise** messy data (`data/unstructured/` & `data/structured/`)<br>• Modular Terraform (`apis.tf`, `storage.tf`, `bigquery.tf`, `discovery_engine.tf`) connecting Data Stores to the Gemini Enterprise App |
-| **`02-conversational-modeling`** | **[Part 2 — 🗣️ Conversational Modeling](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-2-conversational-modeling.md)** | **[Part 2 EXTRA — Agent Code & Terraform Setup](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-2-extra-code-and-terraform-setup.md)** | • **Dialogflow CX** (`dialogflow_cx.tf`) + Generative Playbook<br>• **ADK Python Agent** (`agents/adk_double_click_agent/`) + **A2A JSON Agent Card** + `vertex_ai_agent.tf` |
-| **`03-ux-ui-and-accessibility`** *(Current)* | **[Part 3 — 🎨 UX/UI & Accessibility](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-3-ux-ui-and-accessibility.md)** | **[Part 3 EXTRA — UI & Widget Terraform Setup](file:///Users/zelda.luconi/Medium/gemini-enterprise-series/part-3-extra-code-and-terraform-setup.md)** | • **Widget & Branding Config (`terraform/widget_ui.tf`):** Custom DoubleClick SVG logo, `SEARCH_WITH_FOLLOW_UPS`, Autocomplete, Feedback, Allowlisted Domains<br>• **Feature Management Governance (`terraform/discovery_engine.tf`):** `features` map controlling Agent Gallery, No-Code Builder, NotebookLM, Memory & Admin Approval |
+| **`01-knowledge-base-management`** | **[Part 1 — 📚 Knowledge Base Management](part-1-knowledge-base-management.md)** | **[Part 1 EXTRA — Code & Terraform Setup](part-1-extra-code-and-terraform-setup.md)** | • **DoubleClick Enterprise** messy data (`data/unstructured/` & `data/structured/`)<br>• Modular Terraform (`apis.tf`, `storage.tf`, `bigquery.tf`, `discovery_engine.tf`) connecting Data Stores to the Gemini Enterprise App |
+| **`02-conversational-modeling`** | **[Part 2 — 🗣️ Conversational Modeling](part-2-conversational-modeling.md)** | **[Part 2 EXTRA — Agent Code & Terraform Setup](part-2-extra-code-and-terraform-setup.md)** | • **Dialogflow CX** (`dialogflow_cx.tf`) + Generative Playbook<br>• **ADK Python Agent** (`agents/adk_double_click_agent/`) + **A2A JSON Agent Card** + `vertex_ai_agent.tf` |
+| **`03-ux-ui-and-accessibility`** *(Current)* | **[Part 3 — 🎨 UX/UI & Accessibility](part-3-ux-ui-and-accessibility.md)** | **[Part 3 EXTRA — UI & Widget Terraform Setup](part-3-extra-code-and-terraform-setup.md)** | • **Widget & Branding Config (`terraform/widget_ui.tf`):** Custom DoubleClick SVG logo, `SEARCH_WITH_FOLLOW_UPS`, Autocomplete, Feedback, Allowlisted Domains<br>• **Feature Management Governance (`terraform/discovery_engine.tf`):** `features` map controlling Agent Gallery, No-Code Builder, NotebookLM, Memory & Admin Approval |
 | **`04-architecture-and-monitoring`** | **Part 4 — 📈 Architecture & Monitoring** *(Checkout `04-architecture-and-monitoring`)* | **Part 4 EXTRA — Observability & Eval Setup** *(Checkout `04-architecture-and-monitoring`)* | • **OpenTelemetry Tracing** (`observability.tf`), **BigQuery Log Sink**, **Cloud Monitoring Dashboard**, and GenAI Eval runner |
 | **`05-integration-and-security`** | **Part 5 — 🛡️ Integration & Security** *(Checkout `05-integration-and-security`)* | **Part 5 EXTRA — Security, OAuth & Mock Web Portal** *(Checkout `05-integration-and-security`)* | • **Per-User OAuth 2.0 Actions**, **Secret Manager** (`security.tf`), **ACL Config**, & **Interactive Mocked Enterprise Intranet Web App (`webapp/`)** |
 
@@ -63,16 +63,35 @@ Before adopting Gemini Enterprise, DoubleClick employees wasted hours every day 
 ```
 This validates all `.env.example` keys, sample data, Part 2 ADK Python tools & A2A JSON card, and validates all modular Terraform files (including `terraform/widget_ui.tf`).
 
-### 2. Provision Part 1 + Part 2 + Part 3 Infrastructure
+### 2. Validate Configuration & Inspect Terraform Plan
+```bash
+# Validates Terraform syntax and verifies that ADK root_agent loads cleanly:
+./scripts/setup_infra.sh --dry-run
+
+# Inspect the Terraform execution plan driven directly by .env:
+./scripts/setup_infra.sh --plan
+```
+
+### 3. Provision Part 1 + Part 2 + Part 3 Infrastructure
 ```bash
 ./scripts/setup_infra.sh
 ```
+What this script performs automatically:
+1. Enables required Google Cloud APIs (`discoveryengine`, `bigquery`, `storage`, `dialogflow`, `aiplatform`, and `iam`).
+2. Applies Terraform to configure Part 3 Widget Config (`google_discovery_engine_widget_config`) and Feature Governance toggles on the Gemini Enterprise App.
+3. Seeds BigQuery structured tables and triggers Discovery Engine document imports.
+4. Configures the Gemini Enterprise Default Assistant with system instructions and customer policies.
+
 After `setup_infra.sh` completes, print your ready-to-embed `<gen-search-widget>` HTML snippet:
 ```bash
 terraform -chdir=terraform output embedded_widget_html_snippet
 ```
 
----
+### 4. Automated Live Cloud Verification
+Verify all provisioned resources directly against live GCP APIs with a single command:
+```bash
+./scripts/verify_live_infra.sh
+```
 
 ## 🖥️ How to Verify the Provisioned Resources in the Google Cloud Console UI
 

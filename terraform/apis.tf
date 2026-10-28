@@ -14,12 +14,14 @@ locals {
   ]
 
   # 📌 Added since Article 2: Dialogflow CX, CX Agent Studio (CES), Vertex AI Agent Engine, and IAM APIs
-  part_2_apis = [
-    "dialogflow.googleapis.com",      # Dialogflow CX Agents & Playbooks
-    "ces.googleapis.com",             # Customer Engagement Suite — Next-Gen CX Agent Studio Apps & Agents
-    "aiplatform.googleapis.com",      # Vertex AI Models & Vertex AI Agent Engine (ADK Runtime)
-    "iam.googleapis.com",             # Service Account & IAM management for ADK Agents
-  ]
+  part_2_apis = concat(
+    [
+      "dialogflow.googleapis.com",      # Dialogflow CX Agents & Playbooks
+      "aiplatform.googleapis.com",      # Vertex AI Models & Vertex AI Agent Engine (ADK Runtime)
+      "iam.googleapis.com",             # Service Account & IAM management for ADK Agents
+    ],
+    var.enable_ces_studio_app ? ["ces.googleapis.com"] : []
+  )
 
   required_apis = concat(
     local.part_1_apis,

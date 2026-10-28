@@ -54,7 +54,26 @@ export TF_VAR_shortcut_url="${SHORTCUT_URL}"
 export TF_VAR_allowlisted_domains="${ALLOWLISTED_DOMAINS}"
 
 
-# 3. Run Terraform Init & Plan/Apply
+export TF_VAR_enable_ces_studio_app="${ENABLE_CES_STUDIO_APP:-false}"
+export TF_VAR_grant_project_iam_roles="${GRANT_PROJECT_IAM_ROLES:-false}"
+
+# 3. Enable Required Google Cloud APIs via gcloud
+echo "🔌 Ensuring required Google Cloud APIs are enabled for ${PROJECT_ID}..."
+REQUIRED_APIS=(
+  "discoveryengine.googleapis.com"
+  "bigquery.googleapis.com"
+  "storage.googleapis.com"
+  "dialogflow.googleapis.com"
+  "aiplatform.googleapis.com"
+  "iam.googleapis.com"
+)
+if [[ "${TF_VAR_enable_ces_studio_app}" == "true" ]]; then
+  REQUIRED_APIS+=("ces.googleapis.com")
+fi
+
+gcloud services enable "${REQUIRED_APIS[@]}" --project="${PROJECT_ID}"
+
+# 4. Run Terraform Init & Plan/Apply
 cd "${ROOT_DIR}/terraform"
 terraform init
 
@@ -65,23 +84,29 @@ if [[ "${1:-}" == "--dry-run" ]]; then
   exit 0
 fi
 
+if [[ "${1:-}" == "--plan" ]]; then
+  echo "📋 Running Terraform Plan using variables sourced from .env..."
+  terraform plan
+  exit 0
+fi
+
 terraform apply -auto-approve
 
-# 4. Populate BigQuery Structured Tables with DoubleClick Enterprise JSONL data
+# 5. Populate BigQuery Structured Tables with DoubleClick Enterprise JSONL data
 echo "📊 Seeding BigQuery tables (${BQ_DATASET_ID}.project_db & retail_sales)..."
-bq --project_id="${PROJECT_ID}" load \
+bq --project_id="${PROJECT_ID}" --location="${REGION}" load \
   --source_format=NEWLINE_DELIMITED_JSON \
   --replace \
   "${BQ_DATASET_ID}.project_db" \
   "${ROOT_DIR}/data/structured/project_db.jsonl"
 
-bq --project_id="${PROJECT_ID}" load \
+bq --project_id="${PROJECT_ID}" --location="${REGION}" load \
   --source_format=NEWLINE_DELIMITED_JSON \
   --replace \
   "${BQ_DATASET_ID}.retail_sales" \
   "${ROOT_DIR}/data/structured/retail_sales.jsonl"
 
-# 5. Trigger Discovery Engine Document Import from GCS & BigQuery
+# 6. Trigger Discovery Engine Document Import from GCS & BigQuery
 echo "📚 Triggering Discovery Engine Data Store imports via REST API..."
 ACCESS_TOKEN="$(gcloud auth print-access-token)"
 API_HOST="discoveryengine.googleapis.com"
@@ -89,7 +114,7 @@ if [[ "${DISCOVERY_ENGINE_LOCATION}" != "global" ]]; then
   API_HOST="${DISCOVERY_ENGINE_LOCATION}-discoveryengine.googleapis.com"
 fi
 
-curl -s -X POST \
+UNSTRUCTURED_RESP=$(curl -s -w "\n%{http_code}" -X POST \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
@@ -100,9 +125,11 @@ curl -s -X POST \
       \"dataSchema\": \"content\"
     },
     \"reconciliationMode\": \"INCREMENTAL\"
-  }" > /dev/null
+  }")
+UNSTRUCTURED_HTTP_CODE=$(echo "${UNSTRUCTURED_RESP}" | tail -n1)
+echo "   Unstructured docs import triggered (HTTP ${UNSTRUCTURED_HTTP_CODE})."
 
-curl -s -X POST \
+STRUCTURED_RESP=$(curl -s -w "\n%{http_code}" -X POST \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
@@ -115,11 +142,13 @@ curl -s -X POST \
       \"dataSchema\": \"custom\"
     },
     \"reconciliationMode\": \"FULL\"
-  }" > /dev/null
+  }")
+STRUCTURED_HTTP_CODE=$(echo "${STRUCTURED_RESP}" | tail -n1)
+echo "   Structured BigQuery import triggered (HTTP ${STRUCTURED_HTTP_CODE})."
 
-# 6. Configure Gemini Enterprise App Default Assistant (System Instructions & Banned Phrases)
+# 7. Configure Gemini Enterprise App Default Assistant (System Instructions & Banned Phrases)
 echo "🤖 Configuring Default Assistant inside ${APP_NAME}-enterprise-app..."
-curl -s -X PATCH \
+ASSISTANT_RESP=$(curl -s -w "\n%{http_code}" -X PATCH \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -H "X-Goog-User-Project: ${PROJECT_ID}" \
@@ -141,9 +170,11 @@ curl -s -X PATCH \
         }
       ]
     }
-  }" > /dev/null
+  }")
+ASSISTANT_HTTP_CODE=$(echo "${ASSISTANT_RESP}" | tail -n1)
+echo "   Default Assistant configured (HTTP ${ASSISTANT_HTTP_CODE})."
 
-echo "✅ Part 1 & Part 2 infrastructure, Gemini Enterprise App (with connected Data Stores), and Conversational Agents deployed!"
+echo "✅ Part 1, Part 2 & Part 3 (UX/UI, Widget & Branding) infrastructure deployed!"
 echo "👉 Run 'terraform -chdir=terraform output dialogflow_cx_agent_resource_name' to copy your Dialogflow Agent path."
 echo "👉 Run 'python3 agents/adk_double_click_agent/deploy_agent_engine.py' to deploy the ADK Agent to Vertex AI Agent Engine."
 
